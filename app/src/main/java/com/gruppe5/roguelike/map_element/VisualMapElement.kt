@@ -1,5 +1,5 @@
 package com.gruppe5.roguelike.map_element
 
-interface MapElement {
+interface VisualMapElement {
     val resId: Int
 }

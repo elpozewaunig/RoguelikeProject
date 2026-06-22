@@ -33,7 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gruppe5.roguelike.map_element.MapElement
+import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
@@ -162,7 +162,7 @@ fun MapTileComposable(tile: MapTile, entity: Entity? = null) {
 }
 
 @Composable
-fun MapTileImage(element: MapElement) {
+fun MapTileImage(element: VisualMapElement) {
     Image(
         modifier = Modifier.width(TILE_SIZE.dp).height(TILE_SIZE.dp),
         bitmap = ImageBitmap.imageResource(id = element.resId),
