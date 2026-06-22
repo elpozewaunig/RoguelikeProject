@@ -25,7 +25,9 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gruppe5.roguelike.entity.Entity
+import com.gruppe5.roguelike.map_element.MapElement
+import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 
@@ -84,21 +86,21 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
 @Composable
 fun MapTileComposable(tile: MapTile, entity: Entity? = null) {
     Box() {
-        Image(
-            modifier = Modifier.width(50.dp).height(50.dp),
-            bitmap = ImageBitmap.imageResource(id = tile.resId),
-            contentDescription = null,
-            filterQuality = FilterQuality.None
-        )
+        MapTileImage(tile)
         if(entity != null) {
-            Image(
-                modifier = Modifier.width(50.dp).height(50.dp),
-                bitmap = ImageBitmap.imageResource(id = entity.resId),
-                contentDescription = null,
-                filterQuality = FilterQuality.None
-            )
+            MapTileImage(entity)
         }
     }
+}
+
+@Composable
+fun MapTileImage(element: MapElement) {
+    Image(
+        modifier = Modifier.width(50.dp).height(50.dp),
+        bitmap = ImageBitmap.imageResource(id = element.resId),
+        contentDescription = null,
+        filterQuality = FilterQuality.None
+    )
 }
 
 @Preview(showBackground = true)

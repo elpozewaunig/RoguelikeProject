@@ -1,8 +1,9 @@
-package com.gruppe5.roguelike
+package com.gruppe5.roguelike.map_element
 
+import com.gruppe5.roguelike.R
 import com.gruppe5.roguelike.property.StatModifier
 
-enum class MapTile(val resId: Int, val isWall: Boolean = false, val stats: StatModifier = StatModifier()) {
+enum class MapTile(override val resId: Int, val isWall: Boolean = false, val stats: StatModifier = StatModifier()): MapElement {
     NONE(R.drawable.tile_none),
     GROUND(R.drawable.tile_ground),
     TREE(R.drawable.tile_tree, true),

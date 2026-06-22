@@ -1,4 +1,4 @@
-package com.gruppe5.roguelike.entity
+package com.gruppe5.roguelike.map_element.entity
 
 import com.gruppe5.roguelike.R
 import com.gruppe5.roguelike.property.Position

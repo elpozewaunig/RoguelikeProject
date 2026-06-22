@@ -1,6 +1,6 @@
 package com.gruppe5.roguelike.map_generators
 
-import com.gruppe5.roguelike.MapTile
+import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.property.Position
 
 interface MapGenerator {
