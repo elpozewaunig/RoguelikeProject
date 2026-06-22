@@ -1,7 +1,6 @@
 package com.gruppe5.roguelike
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -82,7 +81,6 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
 
             detectTapGestures(onTap = { offset ->
                 val centerOffset = offset - centerPoint
-                Log.i("Roguelike", "centerOffset: $centerOffset")
 
                 // Offset along x-axis more dominant
                 if(abs(centerOffset.x) > abs(centerOffset.y)) {
@@ -102,9 +100,6 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                         model.moveUp()
                     }
                 }
-
-                Log.i("Roguelike", "boxSize: $boxSize")
-                Log.i("Roguelike", "offset: $offset")
             })
         }
     ) {
