@@ -5,6 +5,9 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.entity.ChaseEnemy
+import com.gruppe5.roguelike.map_element.entity.Enemy
+import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.map_element.entity.Player
 import com.gruppe5.roguelike.map_generators.TileType
 import com.gruppe5.roguelike.map_generators.BasicMapGenerator
@@ -12,7 +15,7 @@ import com.gruppe5.roguelike.map_generators.MapGenerator
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 
-class RoguelikeViewModel: ViewModel() {
+class RoguelikeViewModel : ViewModel() {
     private val mapGenerator: MapGenerator = BasicMapGenerator()
     val currentMap: List<List<MapTile>> = mapGenerator.getMap()
     val player: Player = Player(
@@ -21,21 +24,76 @@ class RoguelikeViewModel: ViewModel() {
         ),
         position = mapGenerator.getStartPos()
     )
+    val enemies: MutableList<Enemy> = mutableListOf()
     var turn by mutableIntStateOf(0)
 
+    val enemyCount: Int = 3
+    init {
+        spawnEnemies()
+    }
+
     private fun move(x: Int, y: Int) {
-        val newPosition = Position(player.position.x + x, player.position.y + y)
-        if(
-            newPosition.y >= 0 &&
-            newPosition.x >= 0 &&
-            newPosition.y < currentMap.size &&
-            newPosition.x < currentMap[newPosition.y].size
-            ) {
-            val targetTileType: TileType = currentMap[newPosition.y][newPosition.x].type
-            if(!targetTileType.isWall) {
-                player.position = newPosition
-                // Perform enemy movement logic here
-                turn++
+        val targetPosition = Position(player.position.x + x, player.position.y + y)
+        if (
+            targetPosition.y < 0 ||
+            targetPosition.x < 0 ||
+            targetPosition.y >= currentMap.size ||
+            targetPosition.x >= currentMap[targetPosition.y].size
+        ) return
+
+        val targetTileType: TileType = currentMap[targetPosition.y][targetPosition.x].type
+        if (targetTileType.isWall) return
+
+        val targetEnemy = getEnemyAt(targetPosition)
+        if (targetEnemy != null) {
+            attackLogic(player, targetEnemy)
+        } else {
+            player.position = targetPosition
+        }
+        moveAllEnemies()
+        turn++
+    }
+
+    private fun moveAllEnemies() {
+        for (enemy in enemies) {
+            val targetPosition = enemy.move(currentMap, player.position)
+
+            if (targetPosition == enemy.position) {
+                continue
+            }
+
+            if (targetPosition == player.position) {
+                attackLogic(enemy, player)
+                continue
+            }
+
+            val occupant = getEnemyAt(targetPosition)
+            if (occupant != null && occupant != enemy) {
+                // TODO after one turn stuck behind non-moving enemy, consider it an obstacle
+                continue
+            }
+            enemy.position = targetPosition
+        }
+    }
+
+    private fun getEnemyAt(position: Position): Enemy? {
+        return enemies.firstOrNull { it.position == position }
+    }
+
+    private fun attackLogic(attacker: Entity, target: Entity) {
+        // TODO machen schaden
+    }
+
+    private fun spawnEnemies() { // TODO bessere random spawn enemy logic statt erstes freie feld ab +5
+        val startPos = player.position
+        var spawnedCount = 0
+        for (y in startPos.y + 5 until currentMap.size) {
+            for (x in startPos.x + 5 until currentMap[y].size) {
+                if (!currentMap[y][x].type.isWall) {
+                    enemies.add(ChaseEnemy(StatModifier(), Position(x, y)))
+                    spawnedCount++
+                    if (spawnedCount >= enemyCount) return
+                }
             }
         }
     }

@@ -63,6 +63,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewModel()) {
     val map = model.currentMap
     val player = model.player
+    val enemies = model.enemies
     val turn = model.turn
 
     val windowInfo = LocalWindowInfo.current
@@ -118,6 +119,8 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                             var tileEntity: Entity? = null
                             if(player.position == tile.position) {
                                 tileEntity = player
+                            } else {
+                                tileEntity = enemies.firstOrNull { it.position == tile.position }
                             }
 
                             MapTileComposable(tile, tileEntity)

@@ -21,11 +21,11 @@ class BasicMapGenerator: MapGenerator {
                     continue
                 }
                 val randomFloat = Random.nextFloat()
-                if(randomFloat < 0.2) {
+                if(randomFloat < 0.1) {
                     row.add(MapTile(TileType.TREE, position))
                     continue
                 }
-                if(randomFloat < 0.3) {
+                if(randomFloat < 0.2) {
                     row.add(MapTile(TileType.ROCK, position))
                     continue
                 }
