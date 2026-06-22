@@ -1,5 +1,7 @@
 package com.gruppe5.roguelike
 
+import com.gruppe5.roguelike.property.StatModifier
+
 enum class MapTile(val resId: Int, val isWall: Boolean = false, val stats: StatModifier = StatModifier()) {
     NONE(R.drawable.tile_none),
     GROUND(R.drawable.tile_ground),

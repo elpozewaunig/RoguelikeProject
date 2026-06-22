@@ -18,12 +18,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gruppe5.roguelike.entity.Entity
+import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 
 class MainActivity : ComponentActivity() {
@@ -32,7 +35,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             RoguelikeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    containerColor = (Color.Black),
+                ) { innerPadding ->
                     MainScreen(
                         modifier = Modifier.padding(innerPadding)
                     )
@@ -45,36 +51,57 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewModel()) {
     val map = model.currentMap
+    val player = model.player
 
-    Box(modifier = Modifier
+    Box(modifier = modifier
         .verticalScroll(rememberScrollState())
         .horizontalScroll(rememberScrollState())
         )
     {
+
         Column(modifier = Modifier) {
-            map.forEach { mapRow ->
+            for(y in map.indices) {
                 Row(modifier = Modifier) {
-                    mapRow.forEach { tile ->
-                        MapTileComposable(tile)
+                    for(x in map[y].indices) {
+                        val tile = map[y][x]
+
+                        val tilePos = Position(x, y)
+                        var tileEntity: Entity? = null
+                        if(player.position == tilePos) {
+                            tileEntity = player
+                        }
+
+                        MapTileComposable(tile, tileEntity)
                     }
                 }
             }
         }
+
     }
 
 }
 
 @Composable
-fun MapTileComposable(tile: MapTile) {
-    Image(
-        modifier = Modifier.width(50.dp).height(50.dp),
-        bitmap = ImageBitmap.imageResource(id = tile.resId),
-        contentDescription = null,
-        filterQuality = FilterQuality.None
-    )
+fun MapTileComposable(tile: MapTile, entity: Entity? = null) {
+    Box() {
+        Image(
+            modifier = Modifier.width(50.dp).height(50.dp),
+            bitmap = ImageBitmap.imageResource(id = tile.resId),
+            contentDescription = null,
+            filterQuality = FilterQuality.None
+        )
+        if(entity != null) {
+            Image(
+                modifier = Modifier.width(50.dp).height(50.dp),
+                bitmap = ImageBitmap.imageResource(id = entity.resId),
+                contentDescription = null,
+                filterQuality = FilterQuality.None
+            )
+        }
+    }
 }
 
-    @Preview(showBackground = true)
+@Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
     RoguelikeTheme {

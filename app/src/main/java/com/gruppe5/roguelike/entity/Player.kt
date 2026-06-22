@@ -1,0 +1,11 @@
+package com.gruppe5.roguelike.entity
+
+import com.gruppe5.roguelike.R
+import com.gruppe5.roguelike.property.Position
+import com.gruppe5.roguelike.property.StatModifier
+
+class Player(
+    override var stats: StatModifier,
+    override var position: Position,
+    override val resId: Int = R.drawable.entity_miku
+): Entity {}

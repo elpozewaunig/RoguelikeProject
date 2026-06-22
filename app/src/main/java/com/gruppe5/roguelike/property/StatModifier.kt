@@ -1,4 +1,4 @@
-package com.gruppe5.roguelike
+package com.gruppe5.roguelike.property
 
 class StatModifier {
     var maxHealth: Int = 0

@@ -1,6 +1,7 @@
 package com.gruppe5.roguelike.map_generators
 
 import com.gruppe5.roguelike.MapTile
+import com.gruppe5.roguelike.property.Position
 import kotlin.random.Random
 
 class BasicMapGenerator: MapGenerator {
@@ -9,12 +10,12 @@ class BasicMapGenerator: MapGenerator {
     override fun getMap(): List<List<MapTile>> {
         val map: MutableList<MutableList<MapTile>> = mutableListOf()
 
-        for(i in 0..<height) {
+        for(y in 0..<height) {
             map.add(mutableListOf())
-            val row = map[i]
+            val row = map[y]
 
-            for(j in 0..<width) {
-                if(i == 0 || j == 0 || i == height-1 || j == width-1) {
+            for(x in 0..<width) {
+                if(y == 0 || x == 0 || y == height-1 || x == width-1) {
                     row.add(MapTile.WALL_STONE)
                     continue
                 }
@@ -33,6 +34,10 @@ class BasicMapGenerator: MapGenerator {
         }
 
         return map
+    }
+
+    override fun getStartPos(): Position {
+        return Position(1, 1)
     }
 
 }
