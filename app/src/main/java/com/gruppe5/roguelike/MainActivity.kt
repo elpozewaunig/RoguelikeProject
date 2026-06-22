@@ -1,10 +1,12 @@
 package com.gruppe5.roguelike
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,9 +20,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -30,6 +35,7 @@ import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
+import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,28 +58,68 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewModel()) {
+    val screenSize = LocalWindowInfo.current.containerSize
+
     val map = model.currentMap
     val player = model.player
+    val turn = model.turn
 
     Box(modifier = modifier
-        .verticalScroll(rememberScrollState())
-        .horizontalScroll(rememberScrollState())
+        .pointerInput(Unit) {
+            val boxSize = this.size
+
+            val centerPoint = Offset((
+                screenSize.width / 2).toFloat(),
+                (screenSize.height / 2).toFloat()
+            )
+
+            detectTapGestures(onTap = { offset ->
+                val centerOffset = offset - centerPoint
+                Log.i("Roguelike", "centerOffset: $centerOffset")
+
+                // Offset along x-axis more dominant
+                if(abs(centerOffset.x) > abs(centerOffset.y)) {
+                    if(centerOffset.x > 0) {
+                        model.moveRight()
+                    }
+                    else {
+                        model.moveLeft()
+                    }
+                }
+                // Offset along y-axis more dominant
+                else {
+                    if(centerOffset.y > 0) {
+                        model.moveDown()
+                    }
+                    else {
+                        model.moveUp()
+                    }
+                }
+
+                Log.i("Roguelike", "boxSize: $boxSize")
+                Log.i("Roguelike", "offset: $offset")
+            })
+        }
         )
     {
+        Box(modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .horizontalScroll(rememberScrollState()))
+        {
+            Column(modifier = Modifier) {
+                for(y in map.indices) {
+                    Row(modifier = Modifier) {
+                        for(x in map[y].indices) {
+                            val tile = map[y][x]
 
-        Column(modifier = Modifier) {
-            for(y in map.indices) {
-                Row(modifier = Modifier) {
-                    for(x in map[y].indices) {
-                        val tile = map[y][x]
+                            val tilePos = Position(x, y)
+                            var tileEntity: Entity? = null
+                            if(player.position == tilePos) {
+                                tileEntity = player
+                            }
 
-                        val tilePos = Position(x, y)
-                        var tileEntity: Entity? = null
-                        if(player.position == tilePos) {
-                            tileEntity = player
+                            MapTileComposable(tile, tileEntity)
                         }
-
-                        MapTileComposable(tile, tileEntity)
                     }
                 }
             }
@@ -85,7 +131,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
 
 @Composable
 fun MapTileComposable(tile: MapTile, entity: Entity? = null) {
-    Box() {
+    Box {
         MapTileImage(tile)
         if(entity != null) {
             MapTileImage(entity)
