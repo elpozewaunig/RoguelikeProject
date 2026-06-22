@@ -7,18 +7,18 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -36,6 +36,8 @@ import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 import kotlin.math.abs
+
+const val TILE_SIZE = 50
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,19 +60,21 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewModel()) {
-    val screenSize = LocalWindowInfo.current.containerSize
-
     val map = model.currentMap
     val player = model.player
     val turn = model.turn
+
+    val windowInfo = LocalWindowInfo.current
+    val screenWidth = windowInfo.containerDpSize.width
+    val screenHeight = windowInfo.containerDpSize.height
 
     Box(modifier = modifier
         .pointerInput(Unit) {
             val boxSize = this.size
 
             val centerPoint = Offset((
-                screenSize.width / 2).toFloat(),
-                (screenSize.height / 2).toFloat()
+                boxSize.width / 2).toFloat(),
+                (boxSize.height / 2).toFloat()
             )
 
             detectTapGestures(onTap = { offset ->
@@ -100,12 +104,14 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                 Log.i("Roguelike", "offset: $offset")
             })
         }
-        )
-    {
+    ) {
         Box(modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .horizontalScroll(rememberScrollState()))
-        {
+            .offset( // center player character
+                screenWidth/2 - (player.position.x * TILE_SIZE).dp,
+                screenHeight/2 - (player.position.y * TILE_SIZE).dp
+            )
+            .wrapContentSize(Alignment.TopStart, true) // otherwise view is "cut off" at the size of the parent container (screen size)
+        ) {
             Column(modifier = Modifier) {
                 for(y in map.indices) {
                     Row(modifier = Modifier) {
@@ -142,7 +148,7 @@ fun MapTileComposable(tile: MapTile, entity: Entity? = null) {
 @Composable
 fun MapTileImage(element: MapElement) {
     Image(
-        modifier = Modifier.width(50.dp).height(50.dp),
+        modifier = Modifier.width(TILE_SIZE.dp).height(TILE_SIZE.dp),
         bitmap = ImageBitmap.imageResource(id = element.resId),
         contentDescription = null,
         filterQuality = FilterQuality.None
