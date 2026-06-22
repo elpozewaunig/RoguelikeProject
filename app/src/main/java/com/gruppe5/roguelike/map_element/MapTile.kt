@@ -1,12 +1,9 @@
 package com.gruppe5.roguelike.map_element
 
-import com.gruppe5.roguelike.R
-import com.gruppe5.roguelike.property.StatModifier
+import com.gruppe5.roguelike.map_generators.TileType
+import com.gruppe5.roguelike.property.Position
 
-enum class MapTile(override val resId: Int, val isWall: Boolean = false, val stats: StatModifier = StatModifier()): VisualMapElement {
-    NONE(R.drawable.tile_none, true),
-    GROUND(R.drawable.tile_ground),
-    TREE(R.drawable.tile_tree, true),
-    ROCK(R.drawable.tile_rock, true),
-    WALL_STONE(R.drawable.tile_wall, true)
+class MapTile(val type: TileType, override val position: Position) : VisualMapElement {
+    override val resId = type.resId
+    var discovered: Boolean = false
 }

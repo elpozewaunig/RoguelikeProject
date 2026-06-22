@@ -1,0 +1,12 @@
+package com.gruppe5.roguelike.map_generators
+
+import com.gruppe5.roguelike.R
+import com.gruppe5.roguelike.property.StatModifier
+
+enum class TileType(val resId: Int, val isWall: Boolean = false, val stats: StatModifier = StatModifier()) {
+    NONE(R.drawable.tile_none, true),
+    GROUND(R.drawable.tile_ground),
+    TREE(R.drawable.tile_tree, true),
+    ROCK(R.drawable.tile_rock, true),
+    WALL_STONE(R.drawable.tile_wall, true)
+}

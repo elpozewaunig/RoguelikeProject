@@ -1,13 +1,12 @@
 package com.gruppe5.roguelike
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.gruppe5.roguelike.map_element.entity.Player
 import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.entity.Player
+import com.gruppe5.roguelike.map_generators.TileType
 import com.gruppe5.roguelike.map_generators.BasicMapGenerator
 import com.gruppe5.roguelike.map_generators.MapGenerator
 import com.gruppe5.roguelike.property.Position
@@ -32,8 +31,8 @@ class RoguelikeViewModel: ViewModel() {
             newPosition.y < currentMap.size &&
             newPosition.x < currentMap[newPosition.y].size
             ) {
-            val targetTile: MapTile = currentMap[newPosition.y][newPosition.x]
-            if(!targetTile.isWall) {
+            val targetTileType: TileType = currentMap[newPosition.y][newPosition.x].type
+            if(!targetTileType.isWall) {
                 player.position = newPosition
                 // Perform enemy movement logic here
                 turn++

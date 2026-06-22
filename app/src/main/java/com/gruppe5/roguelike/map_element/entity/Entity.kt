@@ -6,6 +6,6 @@ import com.gruppe5.roguelike.property.StatModifier
 
 interface Entity: VisualMapElement {
     override val resId: Int
-    var position: Position
+    override var position: Position
     var stats: StatModifier
 }

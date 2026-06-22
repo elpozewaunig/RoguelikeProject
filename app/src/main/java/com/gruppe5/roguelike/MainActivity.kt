@@ -33,10 +33,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.entity.Entity
-import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 import kotlin.math.abs
 
@@ -121,10 +120,8 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                     Row(modifier = Modifier) {
                         for(x in map[y].indices) {
                             val tile = map[y][x]
-
-                            val tilePos = Position(x, y)
                             var tileEntity: Entity? = null
-                            if(player.position == tilePos) {
+                            if(player.position == tile.position) {
                                 tileEntity = player
                             }
 

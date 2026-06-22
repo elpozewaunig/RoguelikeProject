@@ -15,20 +15,21 @@ class BasicMapGenerator: MapGenerator {
             val row = map[y]
 
             for(x in 0..<width) {
+                val position = Position(x, y)
                 if(y == 0 || x == 0 || y == height-1 || x == width-1) {
-                    row.add(MapTile.WALL_STONE)
+                    row.add(MapTile(TileType.WALL_STONE, position))
                     continue
                 }
                 val randomFloat = Random.nextFloat()
                 if(randomFloat < 0.2) {
-                    row.add(MapTile.TREE)
+                    row.add(MapTile(TileType.TREE, position))
                     continue
                 }
                 if(randomFloat < 0.3) {
-                    row.add(MapTile.ROCK)
+                    row.add(MapTile(TileType.ROCK, position))
                     continue
                 }
-                row.add(MapTile.GROUND)
+                row.add(MapTile(TileType.GROUND, position))
             }
 
         }
