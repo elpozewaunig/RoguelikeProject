@@ -23,15 +23,32 @@ class Cell {
 
 object Pathfinding {
 
-    fun findPath(map: List<List<MapTile>>, entities: List<Entity>, start: Position, goal: Position): List<Position> {
+    fun findPath(
+        map: List<List<MapTile>>,
+        entities: List<Entity>,
+        start: Position,
+        goal: Position
+    ): List<Position> {
         val rowCount = map.size
         val colCount = if (rowCount > 0) map[0].size else 0
 
-        if (!isValid(start.y, start.x, rowCount, colCount) || !isValid(goal.y, goal.x, rowCount, colCount)) {
+        if (!isValid(start.y, start.x, rowCount, colCount) || !isValid(
+                goal.y,
+                goal.x,
+                rowCount,
+                colCount
+            )
+        ) {
             return emptyList()
         }
 
-        if (!isUnBlocked(map, listOf(), start.y, start.x) || !isUnBlocked(map, listOf(), goal.y, goal.x)) {
+        if (!isUnBlocked(map, listOf(), start.y, start.x) || !isUnBlocked(
+                map,
+                listOf(),
+                goal.y,
+                goal.x
+            )
+        ) {
             return emptyList()
         }
 
@@ -177,7 +194,12 @@ object Pathfinding {
         return (row >= 0) && (row < rowCount) && (col >= 0) && (col < colCount)
     }
 
-    private fun isUnBlocked(map: List<List<MapTile>>, entities: List<Entity>, row: Int, col: Int): Boolean {
+    private fun isUnBlocked(
+        map: List<List<MapTile>>,
+        entities: List<Entity>,
+        row: Int,
+        col: Int
+    ): Boolean {
         return !map[row][col].type.isWall
             && entities.firstOrNull { it.position == Position(col, row) } == null
     }
@@ -187,7 +209,7 @@ object Pathfinding {
     }
 
     private fun calculateHValue(row: Int, col: Int, dest: Position): Double {
-        return sqrt(((row - dest.y) * (row - dest.y) + (col - dest.x) * (col - dest.x)).toDouble())
+        return (kotlin.math.abs(row - dest.y) + kotlin.math.abs(col - dest.x)).toDouble()
     }
 
     private fun tracePath(cellDetails: Array<Array<Cell>>, dest: Position): List<Position> {
