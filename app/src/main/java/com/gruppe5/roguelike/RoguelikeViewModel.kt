@@ -5,18 +5,17 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.gruppe5.roguelike.map_element.MapTile
-import com.gruppe5.roguelike.map_element.entity.ChaseEnemy
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.map_element.entity.Player
-import com.gruppe5.roguelike.map_generators.TileType
-import com.gruppe5.roguelike.map_generators.BasicMapGenerator
-import com.gruppe5.roguelike.map_generators.MapGenerator
+import com.gruppe5.roguelike.level_generators.TileType
+import com.gruppe5.roguelike.level_generators.BasicLevelGenerator
+import com.gruppe5.roguelike.level_generators.LevelGenerator
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 
 class RoguelikeViewModel : ViewModel() {
-    private val mapGenerator: MapGenerator = BasicMapGenerator()
+    private val mapGenerator: LevelGenerator = BasicLevelGenerator()
     val currentMap: List<List<MapTile>> = mapGenerator.getMap()
     val player: Player = Player(
         StatModifier(

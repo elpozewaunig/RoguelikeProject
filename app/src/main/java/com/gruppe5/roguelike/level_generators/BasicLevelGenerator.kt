@@ -1,4 +1,4 @@
-package com.gruppe5.roguelike.map_generators
+package com.gruppe5.roguelike.level_generators
 
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.ChaseEnemy
@@ -7,7 +7,7 @@ import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import kotlin.random.Random
 
-class BasicMapGenerator: MapGenerator {
+class BasicLevelGenerator: LevelGenerator {
     val height = 100
     val width = 100
 

@@ -1,4 +1,4 @@
-package com.gruppe5.roguelike.map_generators
+package com.gruppe5.roguelike.level_generators
 
 import com.gruppe5.roguelike.R
 import com.gruppe5.roguelike.property.StatModifier
