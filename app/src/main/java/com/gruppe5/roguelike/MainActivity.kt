@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.imageResource
@@ -38,6 +40,7 @@ import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 import kotlin.math.abs
 
+const val DEBUG_MODE = false
 const val TILE_SIZE = 50
 
 class MainActivity : ComponentActivity() {
@@ -133,6 +136,10 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                         }
                     }
                 }
+
+            }
+            if (DEBUG_MODE) {
+                DebugPathOverlay(enemies, map[0].size, map.size)
             }
         }
 
@@ -177,5 +184,66 @@ fun MapTileImage(element: VisualMapElement) {
 fun MainScreenPreview() {
     RoguelikeTheme {
         MainScreen()
+    }
+}
+
+@Composable // [!] slop
+fun DebugPathOverlay(enemies: List<com.gruppe5.roguelike.map_element.entity.Enemy>, mapWidth: Int, mapHeight: Int) {
+    Canvas(
+        modifier = Modifier
+            .width((mapWidth * TILE_SIZE).dp)
+            .height((mapHeight * TILE_SIZE).dp)
+    ) {
+        enemies.forEachIndexed { index, enemy ->
+            val path = enemy.path
+            if (path.isEmpty()) return@forEachIndexed
+
+            val hue = (240f + index * 36f) % 360f
+            val hsvColor = android.graphics.Color.HSVToColor(floatArrayOf(hue, 1f, 1f))
+            val pathColor = Color(hsvColor)
+
+            val paint = android.graphics.Paint().apply {
+                color = hsvColor
+                textSize = 30f
+                textAlign = android.graphics.Paint.Align.CENTER
+            }
+
+            for (i in 0 until path.size - 1) {
+                val startPos = path[i]
+                val endPos = path[i+1]
+
+                val startX = startPos.x * TILE_SIZE.dp.toPx() + TILE_SIZE.dp.toPx() / 2
+                val startY = startPos.y * TILE_SIZE.dp.toPx() + TILE_SIZE.dp.toPx() / 2
+
+                val endX = endPos.x * TILE_SIZE.dp.toPx() + TILE_SIZE.dp.toPx() / 2
+                val endY = endPos.y * TILE_SIZE.dp.toPx() + TILE_SIZE.dp.toPx() / 2
+
+                drawLine(
+                    color = pathColor,
+                    start = Offset(startX, startY),
+                    end = Offset(endX, endY),
+                    strokeWidth = 5f
+                )
+            }
+
+            for (i in path.indices) {
+                val pos = path[i]
+                val cx = pos.x * TILE_SIZE.dp.toPx() + TILE_SIZE.dp.toPx() / 2
+                val cy = pos.y * TILE_SIZE.dp.toPx() + TILE_SIZE.dp.toPx() / 2
+
+                drawCircle(
+                    color = pathColor,
+                    radius = 10f,
+                    center = Offset(cx, cy)
+                )
+
+                drawContext.canvas.nativeCanvas.drawText(
+                    i.toString(),
+                    cx,
+                    cy - 15f,
+                    paint
+                )
+            }
+        }
     }
 }
