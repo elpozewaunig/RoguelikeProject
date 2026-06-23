@@ -24,13 +24,8 @@ class RoguelikeViewModel : ViewModel() {
         ),
         position = mapGenerator.getStartPos()
     )
-    val enemies: MutableList<Enemy> = mutableListOf()
+    val enemies: List<Enemy> = mapGenerator.getEnemies()
     var turn by mutableIntStateOf(0)
-
-    val enemyCount: Int = 3
-    init {
-        spawnEnemies()
-    }
 
     private fun move(x: Int, y: Int) {
         val targetPosition = Position(player.position.x + x, player.position.y + y)
@@ -81,20 +76,6 @@ class RoguelikeViewModel : ViewModel() {
 
     private fun attackLogic(attacker: Entity, target: Entity) {
         // TODO machen schaden
-    }
-
-    private fun spawnEnemies() { // TODO bessere random spawn enemy logic statt erstes freie feld ab +5
-        val startPos = player.position
-        var spawnedCount = 0
-        for (y in startPos.y + 5 until currentMap.size) {
-            for (x in startPos.x + 5 until currentMap[y].size) {
-                if (!currentMap[y][x].type.isWall) {
-                    enemies.add(ChaseEnemy(StatModifier(), Position(x, y)))
-                    spawnedCount++
-                    if (spawnedCount >= enemyCount) return
-                }
-            }
-        }
     }
 
     fun moveRight() {
