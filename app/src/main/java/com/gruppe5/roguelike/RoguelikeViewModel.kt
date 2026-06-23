@@ -77,6 +77,10 @@ class RoguelikeViewModel : ViewModel() {
         // TODO machen schaden
     }
 
+    fun moveSkip() {
+        move(0, 0)
+    }
+
     fun moveRight() {
         move(1, 0)
     }

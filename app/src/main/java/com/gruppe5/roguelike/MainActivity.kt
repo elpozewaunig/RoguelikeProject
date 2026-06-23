@@ -73,18 +73,23 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
     // Map Container Box
     Box(modifier = modifier
         .pointerInput(Unit) {
-            val boxSize = this.size
-
             val centerPoint = Offset((
-                boxSize.width / 2).toFloat(),
-                (boxSize.height / 2).toFloat()
+                screenWidth / 2).toPx(),
+                (screenHeight / 2).toPx()
             )
 
             detectTapGestures(onTap = { offset ->
                 val centerOffset = offset - centerPoint
 
+                // Tap is on player itself
+                if(
+                    abs(centerOffset.x) < 0.5 * TILE_SIZE.dp.toPx() &&
+                    abs(centerOffset.y) < 0.5 * TILE_SIZE.dp.toPx())
+                {
+                    model.moveSkip()
+                }
                 // Offset along x-axis more dominant
-                if(abs(centerOffset.x) > abs(centerOffset.y)) {
+                else if(abs(centerOffset.x) > abs(centerOffset.y)) {
                     if(centerOffset.x > 0) {
                         model.moveRight()
                     }
@@ -106,8 +111,8 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
     ) {
         Box(modifier = Modifier
             .offset( // center player character
-                screenWidth/2 - (player.position.x * TILE_SIZE).dp,
-                screenHeight/2 - (player.position.y * TILE_SIZE).dp
+                screenWidth/2 - (player.position.x * TILE_SIZE).dp - (TILE_SIZE / 2).dp,
+                screenHeight/2 - (player.position.y * TILE_SIZE).dp - (TILE_SIZE / 2).dp
             )
             .wrapContentSize(Alignment.TopStart, true) // otherwise view is "cut off" at the size of the parent container (screen size)
         ) {
@@ -116,12 +121,13 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                     Row(modifier = Modifier) {
                         for(x in map[y].indices) {
                             val tile = map[y][x]
-                            var tileEntity: Entity? = null
-                            if(player.position == tile.position) {
-                                tileEntity = player
-                            } else {
-                                tileEntity = enemies.firstOrNull { it.position == tile.position }
-                            }
+                            val tileEntity: Entity? =
+                                if(player.position == tile.position) {
+                                    player
+                                }
+                                else {
+                                    enemies.firstOrNull { it.position == tile.position }
+                                }
 
                             MapTileComposable(tile, tileEntity)
                         }
