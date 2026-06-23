@@ -1,6 +1,7 @@
 package com.gruppe5.roguelike.utility
 
 import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
 import java.util.ArrayList
 import java.util.Collections
@@ -22,7 +23,7 @@ class Cell {
 
 object Pathfinding {
 
-    fun findPath(map: List<List<MapTile>>, start: Position, goal: Position): List<Position> {
+    fun findPath(map: List<List<MapTile>>, entities: List<Entity>, start: Position, goal: Position): List<Position> {
         val rowCount = map.size
         val colCount = if (rowCount > 0) map[0].size else 0
 
@@ -30,7 +31,7 @@ object Pathfinding {
             return emptyList()
         }
 
-        if (!isUnBlocked(map, start.y, start.x) || !isUnBlocked(map, goal.y, goal.x)) {
+        if (!isUnBlocked(map, listOf(), start.y, start.x) || !isUnBlocked(map, listOf(), goal.y, goal.x)) {
             return emptyList()
         }
 
@@ -79,7 +80,7 @@ object Pathfinding {
                     cellDetails[i - 1][j].parent_j = j
                     foundDest = true
                     return tracePath(cellDetails, goal)
-                } else if (!closedList[i - 1][j] && isUnBlocked(map, i - 1, j)) {
+                } else if (!closedList[i - 1][j] && isUnBlocked(map, entities, i - 1, j)) {
                     gNew = cellDetails[i][j].g + 1.0
                     hNew = calculateHValue(i - 1, j, goal)
                     fNew = gNew + hNew
@@ -103,7 +104,7 @@ object Pathfinding {
                     cellDetails[i + 1][j].parent_j = j
                     foundDest = true
                     return tracePath(cellDetails, goal)
-                } else if (!closedList[i + 1][j] && isUnBlocked(map, i + 1, j)) {
+                } else if (!closedList[i + 1][j] && isUnBlocked(map, entities, i + 1, j)) {
                     gNew = cellDetails[i][j].g + 1.0
                     hNew = calculateHValue(i + 1, j, goal)
                     fNew = gNew + hNew
@@ -127,7 +128,7 @@ object Pathfinding {
                     cellDetails[i][j + 1].parent_j = j
                     foundDest = true
                     return tracePath(cellDetails, goal)
-                } else if (!closedList[i][j + 1] && isUnBlocked(map, i, j + 1)) {
+                } else if (!closedList[i][j + 1] && isUnBlocked(map, entities, i, j + 1)) {
                     gNew = cellDetails[i][j].g + 1.0
                     hNew = calculateHValue(i, j + 1, goal)
                     fNew = gNew + hNew
@@ -151,7 +152,7 @@ object Pathfinding {
                     cellDetails[i][j - 1].parent_j = j
                     foundDest = true
                     return tracePath(cellDetails, goal)
-                } else if (!closedList[i][j - 1] && isUnBlocked(map, i, j - 1)) {
+                } else if (!closedList[i][j - 1] && isUnBlocked(map, entities, i, j - 1)) {
                     gNew = cellDetails[i][j].g + 1.0
                     hNew = calculateHValue(i, j - 1, goal)
                     fNew = gNew + hNew
@@ -176,8 +177,9 @@ object Pathfinding {
         return (row >= 0) && (row < rowCount) && (col >= 0) && (col < colCount)
     }
 
-    private fun isUnBlocked(map: List<List<MapTile>>, row: Int, col: Int): Boolean {
+    private fun isUnBlocked(map: List<List<MapTile>>, entities: List<Entity>, row: Int, col: Int): Boolean {
         return !map[row][col].type.isWall
+            && entities.firstOrNull { it.position == Position(col, row) } == null
     }
 
     private fun isDestination(row: Int, col: Int, dest: Position): Boolean {

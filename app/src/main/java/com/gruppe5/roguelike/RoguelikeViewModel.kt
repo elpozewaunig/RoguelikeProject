@@ -56,7 +56,7 @@ class RoguelikeViewModel : ViewModel() {
 
     private fun moveAllEnemies() {
         for (enemy in enemies) {
-            val targetPosition = enemy.move(currentMap, player.position)
+            val targetPosition = enemy.move(currentMap, enemies, player.position)
 
             if (targetPosition == enemy.position) {
                 continue
@@ -69,7 +69,6 @@ class RoguelikeViewModel : ViewModel() {
 
             val occupant = getEnemyAt(targetPosition)
             if (occupant != null && occupant != enemy) {
-                // TODO after one turn stuck behind non-moving enemy, consider it an obstacle
                 continue
             }
             enemy.position = targetPosition

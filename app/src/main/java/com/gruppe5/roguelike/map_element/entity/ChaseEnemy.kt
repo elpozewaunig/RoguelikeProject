@@ -11,8 +11,8 @@ class ChaseEnemy(
     override var position: Position,
     override val resId: Int = R.drawable.entity_teto
 ): Enemy(stats, position) {
-    override fun move(map: List<List<MapTile>>, playerPosition: Position): Position {
-        val path = Pathfinding.findPath(map, position, playerPosition)
+    override fun move(map: List<List<MapTile>>, entities: List<Entity>, playerPosition: Position): Position {
+        val path = Pathfinding.findPath(map, entities, position, playerPosition)
         return if(path.size > 1) path[1] else position
     }
 }
