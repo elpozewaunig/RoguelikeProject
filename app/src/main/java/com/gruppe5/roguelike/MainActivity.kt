@@ -1,6 +1,7 @@
 package com.gruppe5.roguelike
 
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,6 +21,11 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -32,6 +38,9 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gruppe5.roguelike.map_element.MapTile
@@ -60,6 +69,18 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+fun dpAnimate(current: Dp, target: Dp, delta: Double, speed: Double): Dp {
+    var change: Dp = ((target - current).value * speed * delta).dp
+    if(
+        (current > target && current + change < target) ||
+        (current < target && current + change > target) ||
+        abs(change.value) < 0.1 * delta
+    ) {
+        change = target - current
+    }
+    return change
 }
 
 @Composable
@@ -112,11 +133,47 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
             })
         }
     ) {
+        val targetOffset = DpOffset(
+            screenWidth/2 - (player.position.x * TILE_SIZE).dp - (TILE_SIZE / 2).dp,
+            screenHeight/2 - (player.position.y * TILE_SIZE).dp - (TILE_SIZE / 2).dp
+        )
+        var currentOffsetX by remember {
+            mutableStateOf(targetOffset.x)
+        }
+        var currentOffsetY by remember {
+            mutableStateOf(targetOffset.y)
+        }
+        
+        val elapsedTime = SystemClock.elapsedRealtime()
+        var lastElapsedTime by remember { mutableLongStateOf(elapsedTime) }
+
+        // Smoothly change offset of camera
+        var firstAnimationFrame by remember { mutableStateOf(true) }
+        if(currentOffsetX != targetOffset.x ||currentOffsetY != targetOffset.y) {
+            if(firstAnimationFrame) {
+                lastElapsedTime = elapsedTime
+                firstAnimationFrame = false
+            }
+            val deltaTime: Double = (elapsedTime - lastElapsedTime) / 1000.0
+            lastElapsedTime = elapsedTime
+            if(currentOffsetX != targetOffset.x) {
+                currentOffsetX += dpAnimate(currentOffsetX, targetOffset.x, deltaTime, 3.0)
+            }
+            if(currentOffsetY != targetOffset.y) {
+                currentOffsetY += dpAnimate(currentOffsetY, targetOffset.y, deltaTime, 3.0)
+            }
+        }
+        else {
+            firstAnimationFrame = true
+        }
+
         Box(modifier = Modifier
-            .offset( // center player character
-                screenWidth/2 - (player.position.x * TILE_SIZE).dp - (TILE_SIZE / 2).dp,
-                screenHeight/2 - (player.position.y * TILE_SIZE).dp - (TILE_SIZE / 2).dp
-            )
+            .offset {
+                IntOffset(
+                currentOffsetX.toPx().toInt(),
+                currentOffsetY.toPx().toInt()
+                )
+            }
             .wrapContentSize(Alignment.TopStart, true) // otherwise view is "cut off" at the size of the parent container (screen size)
         ) {
             Column(modifier = Modifier) {
