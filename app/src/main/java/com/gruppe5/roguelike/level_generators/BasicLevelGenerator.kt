@@ -3,6 +3,7 @@ package com.gruppe5.roguelike.level_generators
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.ChaseEnemy
 import com.gruppe5.roguelike.map_element.entity.Enemy
+import com.gruppe5.roguelike.map_element.entity.RangeSightedEnemy
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import kotlin.random.Random
@@ -58,20 +59,36 @@ class BasicLevelGenerator: LevelGenerator {
     }
 
     private fun generateEnemies(): List<Enemy> {
+        val spawnProtectedArea = 5
+        val mapPercentUsed = 0.2 //for now to keep the enemies close to spawn
         val startPos = getStartPos()
         val enemies: MutableList<Enemy> = mutableListOf()
-        val enemyCount = 3
+        val targetEnemyCount = 16
 
-        var spawnedCount = 0
-        for (y in startPos.y + 5 until tilemap.size) {
-            for (x in startPos.x + 5 until tilemap[y].size) {
+        val validPositions = mutableListOf<Position>()
+        for (y in startPos.y + spawnProtectedArea until (tilemap.size*mapPercentUsed).toInt()) {
+            for (x in startPos.x + spawnProtectedArea until (tilemap[y].size*mapPercentUsed).toInt()) {
                 if (!tilemap[y][x].type.isWall) {
-                    enemies.add(ChaseEnemy(StatModifier(), Position(x, y)))
-                    spawnedCount++
-                    if (spawnedCount >= enemyCount) return enemies
+                    validPositions.add(Position(x, y))
                 }
             }
         }
+
+        validPositions.shuffle(Random)
+        val spawnCount = minOf(targetEnemyCount, validPositions.size)
+
+        val enemyPool = listOf<(Position) -> Enemy>(
+            { pos -> ChaseEnemy(StatModifier(), pos) },
+            { pos -> RangeSightedEnemy(StatModifier(), pos, lineOfSight = 2) },
+            { pos -> RangeSightedEnemy(StatModifier(), pos, lineOfSight = 2) } // 2/3 chance for Ranged
+        )
+
+        for (i in 0 until spawnCount) {
+            val spawnPos = validPositions[i]
+            val randomEnemyFactory = enemyPool.random(Random)
+            enemies.add(randomEnemyFactory(spawnPos))
+        }
+
         return enemies
     }
 
