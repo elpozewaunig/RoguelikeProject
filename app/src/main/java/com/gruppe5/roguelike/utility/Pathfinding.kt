@@ -4,14 +4,12 @@ import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
 import java.util.ArrayList
-import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.PriorityQueue
-import kotlin.math.sqrt
 
 class Cell {
-    var parent_i: Int = -1
-    var parent_j: Int = -1
+    var parentI: Int = -1
+    var parentJ: Int = -1
     var f: Double = Double.POSITIVE_INFINITY
     var g: Double = Double.POSITIVE_INFINITY
     var h: Double = Double.POSITIVE_INFINITY
@@ -64,14 +62,18 @@ object Pathfinding {
         var j = start.x
         cellDetails[i][j].f = 0.0
         cellDetails[i][j].g = 0.0
-        cellDetails[i][j].h = 0.0
-        cellDetails[i][j].parent_i = i
-        cellDetails[i][j].parent_j = j
+        cellDetails[i][j].h = calculateHValue(i, j, goal)
+        cellDetails[i][j].parentI = i
+        cellDetails[i][j].parentJ = j
 
+        var bestEffortNode = start
+        var bestEffortH = cellDetails[i][j].h
+
+        // We use a PriorityQueue, NOT a HashMap. A HashMap mapping F-scores to Positions
+        // will silently overwrite and delete valid nodes that happen to share the same F-score,
+        // breaking the A* algorithm and causing it to frequently fail to find a path.
         val openList = PriorityQueue<Pair<Double, Position>>(compareBy { it.first })
         openList.add(Pair(0.0, Position(j, i)))
-
-        var foundDest = false
 
         while (openList.isNotEmpty()) {
             val p = openList.remove()
@@ -79,8 +81,13 @@ object Pathfinding {
             i = p.second.y
             j = p.second.x
 
-            if (closedList[i][j]) continue //hack because removing is painful, so just silently skip when re-encountering worse cost alternative
+            if (closedList[i][j]) continue
             closedList[i][j] = true
+
+            if (cellDetails[i][j].h < bestEffortH) {
+                bestEffortH = cellDetails[i][j].h
+                bestEffortNode = p.second
+            }
 
             var gNew: Double
             var hNew: Double
@@ -89,9 +96,8 @@ object Pathfinding {
             // 1st Successor (North)
             if (isValid(i - 1, j, rowCount, colCount)) {
                 if (isDestination(i - 1, j, goal)) {
-                    cellDetails[i - 1][j].parent_i = i
-                    cellDetails[i - 1][j].parent_j = j
-                    foundDest = true
+                    cellDetails[i - 1][j].parentI = i
+                    cellDetails[i - 1][j].parentJ = j
                     return tracePath(cellDetails, goal)
                 } else if (!closedList[i - 1][j] && isUnBlocked(map, entities, i - 1, j)) {
                     gNew = cellDetails[i][j].g + 1.0
@@ -104,8 +110,8 @@ object Pathfinding {
                         cellDetails[i - 1][j].f = fNew
                         cellDetails[i - 1][j].g = gNew
                         cellDetails[i - 1][j].h = hNew
-                        cellDetails[i - 1][j].parent_i = i
-                        cellDetails[i - 1][j].parent_j = j
+                        cellDetails[i - 1][j].parentI = i
+                        cellDetails[i - 1][j].parentJ = j
                     }
                 }
             }
@@ -113,9 +119,8 @@ object Pathfinding {
             // 2nd Successor (South)
             if (isValid(i + 1, j, rowCount, colCount)) {
                 if (isDestination(i + 1, j, goal)) {
-                    cellDetails[i + 1][j].parent_i = i
-                    cellDetails[i + 1][j].parent_j = j
-                    foundDest = true
+                    cellDetails[i + 1][j].parentI = i
+                    cellDetails[i + 1][j].parentJ = j
                     return tracePath(cellDetails, goal)
                 } else if (!closedList[i + 1][j] && isUnBlocked(map, entities, i + 1, j)) {
                     gNew = cellDetails[i][j].g + 1.0
@@ -128,8 +133,8 @@ object Pathfinding {
                         cellDetails[i + 1][j].f = fNew
                         cellDetails[i + 1][j].g = gNew
                         cellDetails[i + 1][j].h = hNew
-                        cellDetails[i + 1][j].parent_i = i
-                        cellDetails[i + 1][j].parent_j = j
+                        cellDetails[i + 1][j].parentI = i
+                        cellDetails[i + 1][j].parentJ = j
                     }
                 }
             }
@@ -137,9 +142,8 @@ object Pathfinding {
             // 3rd Successor (East)
             if (isValid(i, j + 1, rowCount, colCount)) {
                 if (isDestination(i, j + 1, goal)) {
-                    cellDetails[i][j + 1].parent_i = i
-                    cellDetails[i][j + 1].parent_j = j
-                    foundDest = true
+                    cellDetails[i][j + 1].parentI = i
+                    cellDetails[i][j + 1].parentJ = j
                     return tracePath(cellDetails, goal)
                 } else if (!closedList[i][j + 1] && isUnBlocked(map, entities, i, j + 1)) {
                     gNew = cellDetails[i][j].g + 1.0
@@ -152,8 +156,8 @@ object Pathfinding {
                         cellDetails[i][j + 1].f = fNew
                         cellDetails[i][j + 1].g = gNew
                         cellDetails[i][j + 1].h = hNew
-                        cellDetails[i][j + 1].parent_i = i
-                        cellDetails[i][j + 1].parent_j = j
+                        cellDetails[i][j + 1].parentI = i
+                        cellDetails[i][j + 1].parentJ = j
                     }
                 }
             }
@@ -161,9 +165,8 @@ object Pathfinding {
             // 4th Successor (West)
             if (isValid(i, j - 1, rowCount, colCount)) {
                 if (isDestination(i, j - 1, goal)) {
-                    cellDetails[i][j - 1].parent_i = i
-                    cellDetails[i][j - 1].parent_j = j
-                    foundDest = true
+                    cellDetails[i][j - 1].parentI = i
+                    cellDetails[i][j - 1].parentJ = j
                     return tracePath(cellDetails, goal)
                 } else if (!closedList[i][j - 1] && isUnBlocked(map, entities, i, j - 1)) {
                     gNew = cellDetails[i][j].g + 1.0
@@ -176,11 +179,16 @@ object Pathfinding {
                         cellDetails[i][j - 1].f = fNew
                         cellDetails[i][j - 1].g = gNew
                         cellDetails[i][j - 1].h = hNew
-                        cellDetails[i][j - 1].parent_i = i
-                        cellDetails[i][j - 1].parent_j = j
+                        cellDetails[i][j - 1].parentI = i
+                        cellDetails[i][j - 1].parentJ = j
                     }
                 }
             }
+        }
+
+        // If no full path is found (e.g. goal is blocked), return best-effort path to the closest reachable tile
+        if (bestEffortNode != start) {
+            return tracePath(cellDetails, bestEffortNode)
         }
 
         return emptyList()
@@ -208,23 +216,26 @@ object Pathfinding {
         return (kotlin.math.abs(row - dest.y) + kotlin.math.abs(col - dest.x)).toDouble()
     }
 
+    /**
+     * Backtracks from the destination node to the start node by following the parent pointers.
+     * The resulting path is then reversed to provide the sequence of steps from start to destination.
+     */
     private fun tracePath(cellDetails: Array<Array<Cell>>, dest: Position): List<Position> {
         var row = dest.y
         var col = dest.x
 
         val pathMap = LinkedHashMap<Position, Boolean>()
 
-        while (!(cellDetails[row][col].parent_i == row && cellDetails[row][col].parent_j == col)) {
+        while (!(cellDetails[row][col].parentI == row && cellDetails[row][col].parentJ == col)) {
             pathMap[Position(col, row)] = true
-            val temp_row = cellDetails[row][col].parent_i
-            val temp_col = cellDetails[row][col].parent_j
-            row = temp_row
-            col = temp_col
+            val cell = cellDetails[row][col]
+            row = cell.parentI
+            col = cell.parentJ
         }
 
         pathMap[Position(col, row)] = true
         val pathList = ArrayList(pathMap.keys)
-        Collections.reverse(pathList)
+        pathList.reverse()
 
         return pathList
     }
