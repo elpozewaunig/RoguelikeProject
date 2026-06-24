@@ -5,8 +5,8 @@ import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.property.Position
 import java.util.ArrayList
 import java.util.Collections
-import java.util.HashMap
 import java.util.LinkedHashMap
+import java.util.PriorityQueue
 import kotlin.math.sqrt
 
 class Cell {
@@ -19,6 +19,7 @@ class Cell {
 
 /**
  * Credit: https://www.geeksforgeeks.org/dsa/a-search-algorithm/ (the java impl. one)
+ * and gemini for fixing their hash map bug -.-
  */
 
 object Pathfinding {
@@ -67,23 +68,18 @@ object Pathfinding {
         cellDetails[i][j].parent_i = i
         cellDetails[i][j].parent_j = j
 
-        val openList = HashMap<Double, Position>()
-        openList[0.0] = Position(j, i)
+        val openList = PriorityQueue<Pair<Double, Position>>(compareBy { it.first })
+        openList.add(Pair(0.0, Position(j, i)))
 
         var foundDest = false
 
         while (openList.isNotEmpty()) {
-            var p = openList.entries.iterator().next()
-            for (q in openList.entries) {
-                if (q.key < p.key) {
-                    p = q
-                }
-            }
+            val p = openList.remove()
 
-            openList.remove(p.key)
+            i = p.second.y
+            j = p.second.x
 
-            i = p.value.y
-            j = p.value.x
+            if (closedList[i][j]) continue //hack because removing is painful, so just silently skip when re-encountering worse cost alternative
             closedList[i][j] = true
 
             var gNew: Double
@@ -103,7 +99,7 @@ object Pathfinding {
                     fNew = gNew + hNew
 
                     if (cellDetails[i - 1][j].f == Double.POSITIVE_INFINITY || cellDetails[i - 1][j].f > fNew) {
-                        openList[fNew] = Position(j, i - 1)
+                        openList.add(Pair(fNew, Position(j, i - 1)))
 
                         cellDetails[i - 1][j].f = fNew
                         cellDetails[i - 1][j].g = gNew
@@ -127,7 +123,7 @@ object Pathfinding {
                     fNew = gNew + hNew
 
                     if (cellDetails[i + 1][j].f == Double.POSITIVE_INFINITY || cellDetails[i + 1][j].f > fNew) {
-                        openList[fNew] = Position(j, i + 1)
+                        openList.add(Pair(fNew, Position(j, i + 1)))
 
                         cellDetails[i + 1][j].f = fNew
                         cellDetails[i + 1][j].g = gNew
@@ -151,7 +147,7 @@ object Pathfinding {
                     fNew = gNew + hNew
 
                     if (cellDetails[i][j + 1].f == Double.POSITIVE_INFINITY || cellDetails[i][j + 1].f > fNew) {
-                        openList[fNew] = Position(j + 1, i)
+                        openList.add(Pair(fNew, Position(j + 1, i)))
 
                         cellDetails[i][j + 1].f = fNew
                         cellDetails[i][j + 1].g = gNew
@@ -175,7 +171,7 @@ object Pathfinding {
                     fNew = gNew + hNew
 
                     if (cellDetails[i][j - 1].f == Double.POSITIVE_INFINITY || cellDetails[i][j - 1].f > fNew) {
-                        openList[fNew] = Position(j - 1, i)
+                        openList.add(Pair(fNew, Position(j - 1, i)))
 
                         cellDetails[i][j - 1].f = fNew
                         cellDetails[i][j - 1].g = gNew
