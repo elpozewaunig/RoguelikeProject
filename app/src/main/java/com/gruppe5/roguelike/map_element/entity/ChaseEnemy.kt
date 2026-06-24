@@ -6,7 +6,7 @@ import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.utility.Pathfinding
 
-class ChaseEnemy(
+open class ChaseEnemy(
     override var stats: StatModifier,
     override var position: Position,
     override val resId: Int = R.drawable.entity_teto
