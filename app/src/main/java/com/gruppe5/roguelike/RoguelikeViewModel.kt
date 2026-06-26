@@ -8,6 +8,8 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
 import com.gruppe5.roguelike.level_generators.BasicLevelGenerator
 import com.gruppe5.roguelike.level_generators.LevelGenerator
+import com.gruppe5.roguelike.inventory.InventoryItem
+import androidx.compose.runtime.mutableStateListOf
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Entity
@@ -21,6 +23,7 @@ import com.gruppe5.roguelike.turn.TurnTaker
 class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely internal states haben die auch mit serialized werden müssen, entweder memento pattern oder etwas schönes kotlin-idiomatic dafür pullen
     private val mapGenerator: LevelGenerator = BasicLevelGenerator()
     val currentMap: List<List<MapTile>> = mapGenerator.getMap()
+    val inventory = mutableStateListOf<InventoryItem>()
     val player: Player = Player(
         StatModifier(maxHealth = 500, health = 500, attack = 5, defense = 2),
         position = mapGenerator.getStartPos()
@@ -30,6 +33,10 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
     var turn by mutableIntStateOf(0)
     var isGameOver by mutableStateOf(false)
         private set
+
+    init {
+        player.inventory = inventory
+    }
 
     private fun submitPlayerMove(dx: Int, dy: Int) {
         if (isGameOver) return
@@ -130,4 +137,13 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
     fun moveDown() = submitPlayerMove(0, 1)
 
     fun moveUp() = submitPlayerMove(0, -1)
+
+    fun onInventorySlotClicked(index: Int) {
+        //TODO moch item action
+    }
+
+    fun setPlayerInventory(items: List<InventoryItem>) {
+        inventory.clear()
+        inventory.addAll(items.take(GameConfig.INVENTORY_SLOTS))
+    }
 }

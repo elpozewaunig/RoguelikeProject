@@ -1,6 +1,7 @@
 package com.gruppe5.roguelike.map_element.entity
 
 import com.gruppe5.roguelike.R
+import com.gruppe5.roguelike.inventory.InventoryItem
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
@@ -13,6 +14,7 @@ class Player(
     override val resId: Int = R.drawable.entity_miku
 ) : Entity, TurnTaker {
     var queued: List<Action> = listOf(Action.Wait) //viewmodel interpretiert input zu action (MVVM und so)
+    var inventory: List<InventoryItem> = emptyList()
 
     override fun decideAction(ctx: TurnContext): List<Action> = queued
 }
