@@ -6,5 +6,6 @@ import com.gruppe5.roguelike.inventory.item_types.HealAbsoluteItem
 class MediumHealthPotion : HealAbsoluteItem(
     label = "Health Potion",
     imageResId = R.drawable.entity_miku,
-    healthAmount = 75
+    healthAmount = 75,
+    usages = 3
 )

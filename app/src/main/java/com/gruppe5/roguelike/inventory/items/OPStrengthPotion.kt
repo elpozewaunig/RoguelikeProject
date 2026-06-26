@@ -11,6 +11,7 @@ class OPStrengthPotion: StatBuffItem(
     buff = Buff(
         duration = 3,
         statsMod = StatModifier(attack = 100) //3 Turns viel zu stark zum testen
-    )
+    ),
+    usages = 1
 )
 

@@ -6,8 +6,9 @@ import com.gruppe5.roguelike.map_element.entity.Player
 open class HealRelativeItem(
     label: String,
     imageResId: Int,
+    usages: Int,
     var healthPercentage: Int
-) : InventoryItem(label, imageResId) {
+) : InventoryItem(label, imageResId, usages) {
 
     override fun use(player: Player) {
         val healAmount = (player.stats.maxHealth * healthPercentage / 100)

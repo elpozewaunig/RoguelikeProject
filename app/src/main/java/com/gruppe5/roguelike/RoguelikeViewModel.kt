@@ -143,7 +143,14 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
     fun moveUp() = submitPlayerMove(0, -1)
 
     fun onInventorySlotClicked(index: Int) {
-        inventory.getOrNull(index)?.use(player)
+        val currentItem = inventory.getOrNull(index)
+
+        currentItem?.use(player)
+        currentItem?.usages -= 1
+
+        if (currentItem?.usages == 0) {
+            inventory.removeAt(index)
+        }
     }
 
     fun setPlayerInventory(items: List<InventoryItem>) {

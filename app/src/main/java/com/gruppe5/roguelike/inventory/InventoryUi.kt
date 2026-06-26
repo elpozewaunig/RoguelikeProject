@@ -65,7 +65,7 @@ fun InventoryItemView(item: InventoryItem) { //Damits nid derselbe Name wie die 
             modifier = Modifier.size(28.dp)
         )
         Text(
-            text = item.label,
+            text = item.usages.toString(),
             color = Color.White,
             fontSize = 10.sp
         )

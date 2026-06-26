@@ -7,8 +7,9 @@ import com.gruppe5.roguelike.property.Buff
 open class StatBuffItem(
     label: String,
     imageResId: Int,
+    usages: Int,
     val buff: Buff
-) : InventoryItem(label, imageResId) {
+) : InventoryItem(label, imageResId, usages) {
 
     override fun use(player: Player) {
         player.stats.attack += buff.statsMod.attack
