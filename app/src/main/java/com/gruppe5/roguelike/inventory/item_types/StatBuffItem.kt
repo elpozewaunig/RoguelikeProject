@@ -8,7 +8,7 @@ open class StatBuffItem(
     label: String,
     imageResId: Int,
     usages: Int,
-    val buff: Buff
+    val buff: Buff //TODO: der läuft zurzeit unendlich, duration weat ignoriert
 ) : InventoryItem(label, imageResId, usages) {
 
     override fun use(player: Player) {
