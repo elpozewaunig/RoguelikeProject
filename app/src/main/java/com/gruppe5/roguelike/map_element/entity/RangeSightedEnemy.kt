@@ -1,10 +1,10 @@
 package com.gruppe5.roguelike.map_element.entity
 
 import com.gruppe5.roguelike.R
-import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
-import kotlin.math.abs
+import com.gruppe5.roguelike.turn.Action
+import com.gruppe5.roguelike.turn.TurnContext
 
 class RangeSightedEnemy(
     stats: StatModifier,
@@ -23,23 +23,15 @@ class RangeSightedEnemy(
 
     private var chasing: Boolean = false
 
-    override fun move(map: List<List<MapTile>>, entities: List<Entity>, playerPosition: Position): Position {
-        val distance = abs(position.x - playerPosition.x) + abs(position.y - playerPosition.y)
-        
+    override fun decideAction(ctx: TurnContext): List<Action> {
+        val distance = position.distanceTo(ctx.player.position)
+
         if (chasing) {
-            if (distance > loseLineOfSight) {
-                chasing = false
-            }
+            if (distance > loseLineOfSight) chasing = false
         } else {
-            if (distance <= findLineOfSight) {
-                chasing = true
-            }
+            if (distance <= findLineOfSight) chasing = true
         }
-        
-        if (chasing) {
-            return super.move(map, entities, playerPosition)
-        }
-        
-        return position
+
+        return if (chasing) super.decideAction(ctx) else listOf(Action.Wait)
     }
 }

@@ -7,10 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,6 +44,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.VisualMapElement
@@ -143,7 +146,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
         var currentOffsetY by remember {
             mutableStateOf(targetOffset.y)
         }
-        
+
         val elapsedTime = SystemClock.elapsedRealtime()
         var lastElapsedTime by remember { mutableLongStateOf(elapsedTime) }
 
@@ -189,7 +192,13 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                                     enemies.firstOrNull { it.position == tile.position }
                                 }
 
-                            MapTileComposable(tile, tileEntity)
+                            //TODO  des is so disgusting atm, (muss btw health hier fetched werden damit recompose geht :055:)
+                            MapTileComposable(
+                                tile = tile,
+                                entity = tileEntity,
+                                health = tileEntity?.stats?.health ?: 0,
+                                maxHealth = tileEntity?.stats?.maxHealth ?: 0
+                            )
                         }
                     }
                 }
@@ -202,27 +211,68 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
 
     }
 
-    // UI Overlay Box
     Box(modifier = modifier.padding(16.dp)) {
-        Row {
-            Text(
-                text = "$turn",
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Right
-            )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "HP ${player.stats.health}/${player.stats.maxHealth}",
+                    color = Color.White
+                )
+                Text(
+                    text = "$turn",
+                    color = Color.White,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Right
+                )
+            }
+            if (model.isGameOver) { //leitner-approved
+                Text(
+                    text = "Game Over",
+                    color = Color.Red,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                    fontSize = 25.sp
+                )
+            }
         }
     }
 
 }
 
 @Composable
-fun MapTileComposable(tile: MapTile, entity: Entity? = null) {
+fun MapTileComposable(tile: MapTile, entity: Entity? = null, health: Int = 0, maxHealth: Int = 0) {
     Box {
         MapTileImage(tile)
         if(entity != null) {
             MapTileImage(entity)
+            HealthBar(
+                current = health,
+                max = maxHealth,
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(y = (-2).dp)
+            )
         }
+    }
+}
+
+// schiach
+@Composable
+fun HealthBar(current: Int, max: Int, modifier: Modifier = Modifier) {
+    if(max <= 0) return
+    val fraction = (current.toFloat() / max).coerceIn(0f, 1f)
+    Box(
+        modifier
+            .width(TILE_SIZE.dp)
+            .height(5.dp)
+            .background(Color.Red)
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth(fraction)
+                .fillMaxHeight()
+                .background(Color.Green)
+        )
     }
 }
 

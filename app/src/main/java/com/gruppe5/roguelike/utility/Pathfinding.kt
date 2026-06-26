@@ -6,6 +6,7 @@ import com.gruppe5.roguelike.property.Position
 import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.PriorityQueue
+import kotlin.math.abs
 
 class Cell {
     var parentI: Int = -1
@@ -18,35 +19,48 @@ class Cell {
 /**
  * Credit: https://www.geeksforgeeks.org/dsa/a-search-algorithm/ (the java impl. one)
  * and gemini for fixing their hash map bug -.-
+ * and claude for adding L movement
+ *
+ * ^^ the beauty of open source collaboration (diebstahl + LLM + LLM + autismus)
  */
 
 object Pathfinding {
+
+    // up down left right
+    val ORTHOGONAL_MOVES: List<Position> = listOf(
+        Position(0, -1), // North
+        Position(0, 1),  // South
+        Position(1, 0),  // East
+        Position(-1, 0)  // West
+    )
+
+    // schach L
+    val KNIGHT_MOVES: List<Position> = listOf(
+        Position(1, 2), Position(2, 1),
+        Position(-1, 2), Position(-2, 1),
+        Position(1, -2), Position(2, -1),
+        Position(-1, -2), Position(-2, -1)
+    )
 
     fun findPath(
         map: List<List<MapTile>>,
         entities: List<Entity>,
         start: Position,
-        goal: Position
+        goal: Position,
+        moves: List<Position> = ORTHOGONAL_MOVES,
+        ignoreWalls: Boolean = false
     ): List<Position> {
         val rowCount = map.size
         val colCount = if (rowCount > 0) map[0].size else 0
 
-        if (!isValid(start.y, start.x, rowCount, colCount) || !isValid(
-                goal.y,
-                goal.x,
-                rowCount,
-                colCount
-            )
+        if (!isValid(start.y, start.x, rowCount, colCount) ||
+            !isValid(goal.y, goal.x, rowCount, colCount)
         ) {
             return emptyList()
         }
 
-        if (!isUnBlocked(map, listOf(), start.y, start.x) || !isUnBlocked(
-                map,
-                listOf(),
-                goal.y,
-                goal.x
-            )
+        if (!isUnBlocked(map, listOf(), start.y, start.x, ignoreWalls) ||
+            !isUnBlocked(map, listOf(), goal.y, goal.x, ignoreWalls)
         ) {
             return emptyList()
         }
@@ -55,6 +69,10 @@ object Pathfinding {
             return emptyList()
         }
 
+        // A single hop closes at most this much Manhattan distance, so dividing the heuristic by it
+        // keeps the estimate admissible for any movement profile (1 for orthogonal, 3 for knights).
+        val maxReach = moves.maxOf { abs(it.x) + abs(it.y) }
+
         val closedList = Array(rowCount) { BooleanArray(colCount) }
         val cellDetails = Array(rowCount) { Array(colCount) { Cell() } }
 
@@ -62,7 +80,7 @@ object Pathfinding {
         var j = start.x
         cellDetails[i][j].f = 0.0
         cellDetails[i][j].g = 0.0
-        cellDetails[i][j].h = calculateHValue(i, j, goal)
+        cellDetails[i][j].h = calculateHValue(i, j, goal, maxReach)
         cellDetails[i][j].parentI = i
         cellDetails[i][j].parentJ = j
 
@@ -89,99 +107,39 @@ object Pathfinding {
                 bestEffortNode = p.second
             }
 
-            var gNew: Double
-            var hNew: Double
-            var fNew: Double
+            // Expand every square one hop away under this movement profile.
+            for (move in moves) {
+                val newRow = i + move.y
+                val newCol = j + move.x
 
-            // 1st Successor (North)
-            if (isValid(i - 1, j, rowCount, colCount)) {
-                if (isDestination(i - 1, j, goal)) {
-                    cellDetails[i - 1][j].parentI = i
-                    cellDetails[i - 1][j].parentJ = j
+                if (!isValid(newRow, newCol, rowCount, colCount)) continue
+
+                if (isDestination(newRow, newCol, goal)) {
+                    cellDetails[newRow][newCol].parentI = i
+                    cellDetails[newRow][newCol].parentJ = j
                     return tracePath(cellDetails, goal)
-                } else if (!closedList[i - 1][j] && isUnBlocked(map, entities, i - 1, j)) {
-                    gNew = cellDetails[i][j].g + 1.0
-                    hNew = calculateHValue(i - 1, j, goal)
-                    fNew = gNew + hNew
-
-                    if (cellDetails[i - 1][j].f == Double.POSITIVE_INFINITY || cellDetails[i - 1][j].f > fNew) {
-                        openList.add(Pair(fNew, Position(j, i - 1)))
-
-                        cellDetails[i - 1][j].f = fNew
-                        cellDetails[i - 1][j].g = gNew
-                        cellDetails[i - 1][j].h = hNew
-                        cellDetails[i - 1][j].parentI = i
-                        cellDetails[i - 1][j].parentJ = j
-                    }
                 }
-            }
 
-            // 2nd Successor (South)
-            if (isValid(i + 1, j, rowCount, colCount)) {
-                if (isDestination(i + 1, j, goal)) {
-                    cellDetails[i + 1][j].parentI = i
-                    cellDetails[i + 1][j].parentJ = j
-                    return tracePath(cellDetails, goal)
-                } else if (!closedList[i + 1][j] && isUnBlocked(map, entities, i + 1, j)) {
-                    gNew = cellDetails[i][j].g + 1.0
-                    hNew = calculateHValue(i + 1, j, goal)
-                    fNew = gNew + hNew
-
-                    if (cellDetails[i + 1][j].f == Double.POSITIVE_INFINITY || cellDetails[i + 1][j].f > fNew) {
-                        openList.add(Pair(fNew, Position(j, i + 1)))
-
-                        cellDetails[i + 1][j].f = fNew
-                        cellDetails[i + 1][j].g = gNew
-                        cellDetails[i + 1][j].h = hNew
-                        cellDetails[i + 1][j].parentI = i
-                        cellDetails[i + 1][j].parentJ = j
-                    }
+                if (closedList[newRow][newCol] ||
+                    !isUnBlocked(map, entities, newRow, newCol, ignoreWalls)
+                ) {
+                    continue
                 }
-            }
 
-            // 3rd Successor (East)
-            if (isValid(i, j + 1, rowCount, colCount)) {
-                if (isDestination(i, j + 1, goal)) {
-                    cellDetails[i][j + 1].parentI = i
-                    cellDetails[i][j + 1].parentJ = j
-                    return tracePath(cellDetails, goal)
-                } else if (!closedList[i][j + 1] && isUnBlocked(map, entities, i, j + 1)) {
-                    gNew = cellDetails[i][j].g + 1.0
-                    hNew = calculateHValue(i, j + 1, goal)
-                    fNew = gNew + hNew
+                val gNew = cellDetails[i][j].g + 1.0
+                val hNew = calculateHValue(newRow, newCol, goal, maxReach)
+                val fNew = gNew + hNew
 
-                    if (cellDetails[i][j + 1].f == Double.POSITIVE_INFINITY || cellDetails[i][j + 1].f > fNew) {
-                        openList.add(Pair(fNew, Position(j + 1, i)))
+                if (cellDetails[newRow][newCol].f == Double.POSITIVE_INFINITY ||
+                    cellDetails[newRow][newCol].f > fNew
+                ) {
+                    openList.add(Pair(fNew, Position(newCol, newRow)))
 
-                        cellDetails[i][j + 1].f = fNew
-                        cellDetails[i][j + 1].g = gNew
-                        cellDetails[i][j + 1].h = hNew
-                        cellDetails[i][j + 1].parentI = i
-                        cellDetails[i][j + 1].parentJ = j
-                    }
-                }
-            }
-
-            // 4th Successor (West)
-            if (isValid(i, j - 1, rowCount, colCount)) {
-                if (isDestination(i, j - 1, goal)) {
-                    cellDetails[i][j - 1].parentI = i
-                    cellDetails[i][j - 1].parentJ = j
-                    return tracePath(cellDetails, goal)
-                } else if (!closedList[i][j - 1] && isUnBlocked(map, entities, i, j - 1)) {
-                    gNew = cellDetails[i][j].g + 1.0
-                    hNew = calculateHValue(i, j - 1, goal)
-                    fNew = gNew + hNew
-
-                    if (cellDetails[i][j - 1].f == Double.POSITIVE_INFINITY || cellDetails[i][j - 1].f > fNew) {
-                        openList.add(Pair(fNew, Position(j - 1, i)))
-
-                        cellDetails[i][j - 1].f = fNew
-                        cellDetails[i][j - 1].g = gNew
-                        cellDetails[i][j - 1].h = hNew
-                        cellDetails[i][j - 1].parentI = i
-                        cellDetails[i][j - 1].parentJ = j
-                    }
+                    cellDetails[newRow][newCol].f = fNew
+                    cellDetails[newRow][newCol].g = gNew
+                    cellDetails[newRow][newCol].h = hNew
+                    cellDetails[newRow][newCol].parentI = i
+                    cellDetails[newRow][newCol].parentJ = j
                 }
             }
         }
@@ -202,9 +160,10 @@ object Pathfinding {
         map: List<List<MapTile>>,
         entities: List<Entity>,
         row: Int,
-        col: Int
+        col: Int,
+        ignoreWalls: Boolean
     ): Boolean {
-        return !map[row][col].type.isWall
+        return (ignoreWalls || !map[row][col].type.isWall)
             && entities.firstOrNull { it.position == Position(col, row) } == null
     }
 
@@ -212,8 +171,8 @@ object Pathfinding {
         return row == dest.y && col == dest.x
     }
 
-    private fun calculateHValue(row: Int, col: Int, dest: Position): Double {
-        return (kotlin.math.abs(row - dest.y) + kotlin.math.abs(col - dest.x)).toDouble()
+    private fun calculateHValue(row: Int, col: Int, dest: Position, maxReach: Int): Double {
+        return Position(col, row).distanceTo(dest).toDouble() / maxReach
     }
 
     /**
