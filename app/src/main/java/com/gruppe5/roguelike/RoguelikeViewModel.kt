@@ -5,11 +5,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import com.gruppe5.roguelike.level_generators.BasicLevelGenerator
 import com.gruppe5.roguelike.level_generators.LevelGenerator
 import com.gruppe5.roguelike.inventory.InventoryItem
-import androidx.compose.runtime.mutableStateListOf
+import com.gruppe5.roguelike.inventory.items.MediumHealthPotion
+import com.gruppe5.roguelike.inventory.items.OPStrengthPotion
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Entity
@@ -35,6 +37,8 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
         private set
 
     init {
+        inventory.add(MediumHealthPotion())
+        inventory.add(OPStrengthPotion())
         player.inventory = inventory
     }
 
@@ -139,10 +143,11 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
     fun moveUp() = submitPlayerMove(0, -1)
 
     fun onInventorySlotClicked(index: Int) {
-        //TODO moch item action
+        inventory.getOrNull(index)?.use(player)
     }
 
     fun setPlayerInventory(items: List<InventoryItem>) {
+        //TODO thomas
         inventory.clear()
         inventory.addAll(items.take(GameConfig.INVENTORY_SLOTS))
     }
