@@ -10,10 +10,8 @@ import androidx.lifecycle.ViewModel
 import com.gruppe5.roguelike.level_generators.BasicLevelGenerator
 import com.gruppe5.roguelike.level_generators.LevelGenerator
 import com.gruppe5.roguelike.inventory.ItemInstance
+import com.gruppe5.roguelike.inventory.Items
 import com.gruppe5.roguelike.property.ActiveBuff
-import com.gruppe5.roguelike.inventory.items.MediumHealthPotion
-import com.gruppe5.roguelike.inventory.items.OPStrengthPotion
-import com.gruppe5.roguelike.inventory.items.Sword
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Entity
@@ -42,9 +40,9 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
 
     init {
         val items = listOf(
-            MediumHealthPotion(),
-            OPStrengthPotion(),
-            Sword()
+            Items.mediumHealthPotion(),
+            Items.opStrengthPotion(),
+            Items.sword()
         )
 
         addPlayerInventory(items)
