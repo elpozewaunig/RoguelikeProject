@@ -24,7 +24,7 @@ import com.gruppe5.roguelike.GameConfig
 
 @Composable
 fun InventoryDisplay(
-    inventory: List<InventoryItem>,
+    inventory: List<ItemInstance>,
     onItemClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     slots: Int = GameConfig.INVENTORY_SLOTS
@@ -57,7 +57,7 @@ fun InventoryDisplay(
 }
 
 @Composable
-fun InventoryItemView(item: InventoryItem) { //Damits nid derselbe Name wie die Klasse ist
+fun InventoryItemView(item: ItemInstance) { //Damits nid derselbe Name wie die Klasse ist
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
             painter = painterResource(id = item.imageResId),
@@ -65,7 +65,7 @@ fun InventoryItemView(item: InventoryItem) { //Damits nid derselbe Name wie die 
             modifier = Modifier.size(28.dp)
         )
         Text(
-            text = item.usages.toString(),
+            text = if(item.isPermanent) "Permanent" else item.usages.toString(),
             color = Color.White,
             fontSize = 10.sp
         )
