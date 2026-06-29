@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gruppe5.roguelike.inventory.InventoryDisplay
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.entity.Entity
@@ -92,6 +93,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
     val player = model.player
     val enemies = model.enemies
     val turn = model.turn
+    val inventory = model.inventory
 
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerDpSize.width
@@ -99,6 +101,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
 
     // Map Container Box
     Box(modifier = modifier
+        .fillMaxSize()
         .pointerInput(Unit) {
             val centerPoint = Offset((
                 screenWidth / 2).toPx(),
@@ -209,30 +212,40 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
             }
         }
 
-    }
+        InventoryDisplay(
+            inventory = inventory,
+            onItemClick = model::onInventorySlotClicked,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 67.dp)
+                .padding(horizontal = 8.dp)
+        )
 
-    Box(modifier = modifier.padding(16.dp)) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "HP ${player.stats.health}/${player.stats.maxHealth}",
-                    color = Color.White
-                )
-                Text(
-                    text = "$turn",
-                    color = Color.White,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Right
-                )
-            }
-            if (model.isGameOver) { //leitner-approved
-                Text(
-                    text = "Game Over",
-                    color = Color.Red,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    fontSize = 25.sp
-                )
+        Box(modifier = Modifier
+            .align(Alignment.TopStart)
+            .padding(16.dp)) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "HP ${player.stats.health}/${player.stats.maxHealth}",
+                        color = Color.White
+                    )
+                    Text(
+                        text = "$turn",
+                        color = Color.White,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Right
+                    )
+                }
+                if (model.isGameOver) { //leitner-approved
+                    Text(
+                        text = "Game Over",
+                        color = Color.Red,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                        fontSize = 25.sp
+                    )
+                }
             }
         }
     }
