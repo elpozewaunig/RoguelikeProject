@@ -1,7 +1,6 @@
 package com.gruppe5.roguelike
 
 import android.os.Bundle
-import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -23,11 +22,12 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -50,6 +50,7 @@ import com.gruppe5.roguelike.inventory.InventoryDisplay
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.entity.Entity
+import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 import kotlin.math.abs
 
@@ -143,69 +144,65 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
             screenWidth/2 - (player.position.x * TILE_SIZE).dp - (TILE_SIZE / 2).dp,
             screenHeight/2 - (player.position.y * TILE_SIZE).dp - (TILE_SIZE / 2).dp
         )
-        var currentOffsetX by remember {
-            mutableStateOf(targetOffset.x)
-        }
-        var currentOffsetY by remember {
-            mutableStateOf(targetOffset.y)
+
+        // Camera is animated OFF the composition (withFrameNanos) and applied in the
+        // layout phase via offset { }. A pan now only re-lays-out the parent instead of
+        // recomposing the whole tile grid every frame. Same easing feel (speed = 3.0).
+        var currentOffset by remember { mutableStateOf(targetOffset) }
+        LaunchedEffect(targetOffset) {
+            var last = 0L
+            while (currentOffset != targetOffset) {
+                withFrameNanos { now ->
+                    val deltaTime = if (last == 0L) 0.0 else (now - last) / 1_000_000_000.0
+                    last = now
+                    currentOffset = DpOffset(
+                        currentOffset.x + dpAnimate(currentOffset.x, targetOffset.x, deltaTime, 3.0),
+                        currentOffset.y + dpAnimate(currentOffset.y, targetOffset.y, deltaTime, 3.0)
+                    )
+                }
+            }
         }
 
-        val elapsedTime = SystemClock.elapsedRealtime()
-        var lastElapsedTime by remember { mutableLongStateOf(elapsedTime) }
+        // Viewport culling: compose only the tiles that can be visible during this move
+        // (on-screen window + a small margin for the in-flight pan), turning ~10k tile
+        // composables into a few hundred. Window is derived from the (stable) target.
+        val cullMargin = 2
+        val minX = (((-targetOffset.x.value) / TILE_SIZE).toInt() - cullMargin).coerceIn(0, map[0].size - 1)
+        val maxX = (((screenWidth.value - targetOffset.x.value) / TILE_SIZE).toInt() + cullMargin).coerceIn(0, map[0].size - 1)
+        val minY = (((-targetOffset.y.value) / TILE_SIZE).toInt() - cullMargin).coerceIn(0, map.size - 1)
+        val maxY = (((screenHeight.value - targetOffset.y.value) / TILE_SIZE).toInt() + cullMargin).coerceIn(0, map.size - 1)
 
-        // Smoothly change offset of camera
-        var firstAnimationFrame by remember { mutableStateOf(true) }
-        if(currentOffsetX != targetOffset.x ||currentOffsetY != targetOffset.y) {
-            if(firstAnimationFrame) {
-                lastElapsedTime = elapsedTime
-                firstAnimationFrame = false
+        // O(1) entity-by-tile lookup, rebuilt once per turn, instead of scanning every
+        // enemy for every tile (was O(tiles x enemies) per recomposition).
+        val entityByPos = remember(turn) {
+            buildMap<Position, Entity> {
+                enemies.forEach { put(it.position, it) }
+                put(player.position, player) // player wins a shared tile
             }
-            val deltaTime: Double = (elapsedTime - lastElapsedTime) / 1000.0
-            lastElapsedTime = elapsedTime
-            if(currentOffsetX != targetOffset.x) {
-                currentOffsetX += dpAnimate(currentOffsetX, targetOffset.x, deltaTime, 3.0)
-            }
-            if(currentOffsetY != targetOffset.y) {
-                currentOffsetY += dpAnimate(currentOffsetY, targetOffset.y, deltaTime, 3.0)
-            }
-        }
-        else {
-            firstAnimationFrame = true
         }
 
         Box(modifier = Modifier
             .offset {
                 IntOffset(
-                currentOffsetX.toPx().toInt(),
-                currentOffsetY.toPx().toInt()
+                    currentOffset.x.toPx().toInt(),
+                    currentOffset.y.toPx().toInt()
                 )
             }
             .wrapContentSize(Alignment.TopStart, true) // otherwise view is "cut off" at the size of the parent container (screen size)
         ) {
-            Column(modifier = Modifier) {
-                for(y in map.indices) {
-                    Row(modifier = Modifier) {
-                        for(x in map[y].indices) {
-                            val tile = map[y][x]
-                            val tileEntity: Entity? =
-                                if(player.position == tile.position) {
-                                    player
-                                }
-                                else {
-                                    enemies.firstOrNull { it.position == tile.position }
-                                }
-
-                            //TODO  des is so disgusting atm, (muss btw health hier fetched werden damit recompose geht :055:)
-                            MapTileComposable(
-                                tile = tile,
-                                entity = tileEntity,
-                                health = tileEntity?.stats?.health ?: 0,
-                                maxHealth = tileEntity?.stats?.maxHealth ?: 0
-                            )
-                        }
+            for (y in minY..maxY) {
+                for (x in minX..maxX) {
+                    val tile = map[y][x]
+                    val tileEntity = entityByPos[tile.position]
+                    Box(modifier = Modifier.offset((x * TILE_SIZE).dp, (y * TILE_SIZE).dp)) {
+                        MapTileComposable(
+                            tile = tile,
+                            entity = tileEntity,
+                            health = tileEntity?.stats?.health ?: 0,
+                            maxHealth = tileEntity?.stats?.maxHealth ?: 0
+                        )
                     }
                 }
-
             }
             if (DEBUG_MODE) {
                 DebugPathOverlay(enemies, map[0].size, map.size)
