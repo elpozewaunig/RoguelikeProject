@@ -86,7 +86,6 @@ class BasicLevelGenerator: LevelGenerator {
         validPositions.shuffle(Random)
         val spawnCount = minOf(targetEnemyCount, validPositions.size)
 
-        //TODO hier noch speed property adden wenn des amal implemented ist
         val enemyPool = listOf<(Position) -> Enemy>(
             { pos -> ChaseEnemy(StatModifier(maxHealth = 12, health = 12, attack = 3, defense = 1), pos) },
             { pos -> RangeSightedEnemy(StatModifier(maxHealth = 8, health = 8, attack = 3), pos, lineOfSight = 2) },

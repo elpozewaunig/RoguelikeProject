@@ -13,13 +13,13 @@ class BlightEnemy(
 ) : Enemy(stats, position) {
     override val resId: Int = R.drawable.entity_blight
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
         val living = blightNeighbours(ctx, position)
         if (living < 2 || living > 3) return listOf(Action.Die)
 
         val blocked = MOORE.mapNotNull { ctx.getEntityAt(position + it) }
             .firstOrNull { it.groups.any(targets::contains) }
-        if (blocked != null) return listOf(Action.Attack(blocked))
+        if (blocked != null) return List(times) { Action.Attack(blocked) }
 
         val births = MOORE.map { position + it }
             .filter { isBirthCell(ctx, it) }

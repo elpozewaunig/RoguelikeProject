@@ -8,4 +8,6 @@ import com.gruppe5.roguelike.property.StatModifier
 class ElephantEnemy(
     stats: StatModifier,
     position: Position,
-) : ChaseEnemy(stats, position, R.drawable.entity_elephant)
+) : ChaseEnemy(stats, position, R.drawable.entity_elephant) {
+    override val speed: Float = 0.25f
+}

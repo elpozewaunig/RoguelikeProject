@@ -23,7 +23,7 @@ class RangeSightedEnemy(
 
     private var chasing: Boolean = false
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
         val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
         val distance = position.distanceTo(target.position)
 
@@ -33,6 +33,6 @@ class RangeSightedEnemy(
             if (distance <= findLineOfSight) chasing = true
         }
 
-        return if (chasing) super.decideAction(ctx) else listOf(Action.Wait)
+        return if (chasing) super.act(ctx, times) else listOf(Action.Wait)
     }
 }

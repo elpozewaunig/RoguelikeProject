@@ -15,11 +15,11 @@ class SnakeBodyEnemy(
 ) : Enemy(stats, position) {
     override val resId: Int = R.drawable.entity_snakebody
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
         val actions = mutableListOf<Action>()
         val target = ctx.nearestTo(position, targets, this)
         if (target != null && Pathfinding.ORTHOGONAL_MOVES.any { position + it == target.position }) {
-            actions += Action.Attack(target)
+            repeat(times) { actions += Action.Attack(target) }
         }
         if (--lifetime <= 0) actions += Action.Die
         return actions.ifEmpty { listOf(Action.Wait) }

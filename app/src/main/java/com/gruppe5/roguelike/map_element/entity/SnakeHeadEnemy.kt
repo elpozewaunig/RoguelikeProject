@@ -14,7 +14,7 @@ class SnakeHeadEnemy(
     val bodyLifetime: Int = 4,
 ) : ChaseEnemy(stats, position, R.drawable.entity_snakehead) {
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
         val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
         val actions = mutableListOf<Action>()
         val from = position

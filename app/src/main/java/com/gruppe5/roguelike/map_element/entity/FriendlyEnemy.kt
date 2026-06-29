@@ -16,11 +16,11 @@ class FriendlyEnemy(
     override val groups: Set<Group> = setOf(Group.FRIENDLY)
     override val targets: Set<Group> = setOf(Group.ENEMY)
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
-        if (ctx.nearestTo(position, targets, this) != null) return super.decideAction(ctx)
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
+        if (ctx.nearestTo(position, targets, this) != null) return super.act(ctx, times)
 
         val player = ctx.nearestTo(position, setOf(Group.PLAYER), this) ?: return listOf(Action.Wait)
         path = Pathfinding.findPath(ctx.map, ctx.entities - player, position, player.position, moves, heuristic, ignoreWalls)
-        return if (path.size > 1) listOf(Action.Move(path[1])) else listOf(Action.Wait)
+        return path.drop(1).take(times).map { Action.Move(it) }.ifEmpty { listOf(Action.Wait) }
     }
 }

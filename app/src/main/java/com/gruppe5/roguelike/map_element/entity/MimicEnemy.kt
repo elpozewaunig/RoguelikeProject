@@ -15,13 +15,13 @@ class MimicEnemy(
     override var resId: Int = dormantResId
     private var awake = false
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
         if (!awake) {
             val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
             if (position.distanceTo(target.position) > 2) return listOf(Action.Wait)
             awake = true
             resId = R.drawable.entity_mimic
         }
-        return super.decideAction(ctx)
+        return super.act(ctx, times)
     }
 }

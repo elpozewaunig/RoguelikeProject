@@ -20,11 +20,11 @@ open class ChaseEnemy(
 
     protected open val ignoreWalls: Boolean = false
 
-    override fun decideAction(ctx: TurnContext): List<Action> {
+    override fun act(ctx: TurnContext, times: Int): List<Action> {
         val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
 
         if (moves.any { position + it == target.position }) {
-            return listOf(Action.Attack(target))
+            return List(times) { Action.Attack(target) }
         }
 
         path = Pathfinding.findPath(
@@ -36,6 +36,6 @@ open class ChaseEnemy(
             heuristic,
             ignoreWalls
         )
-        return if (path.size > 1) listOf(Action.Move(path[1])) else listOf(Action.Wait)
+        return path.drop(1).take(times).map { Action.Move(it) }.ifEmpty { listOf(Action.Wait) }
     }
 }

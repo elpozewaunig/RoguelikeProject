@@ -10,4 +10,5 @@ class GhostEnemy(
     position: Position,
 ) : ChaseEnemy(stats, position, R.drawable.entity_ghost) {
     override val ignoreWalls: Boolean = true
+    override val speed: Float = 2f
 }
