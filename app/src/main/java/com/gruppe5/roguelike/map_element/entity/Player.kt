@@ -14,7 +14,7 @@ class Player(
     override var position: Position,
     override val resId: Int = R.drawable.entity_miku
 ) : Entity, TurnTaker {
-    override val groups: Set<Group> = setOf(Group.PLAYER)
+    override val groups: Set<Group> = setOf(Group.PLAYER, Group.PLAYERFRIEND)
 
     var queued: List<Action> = listOf(Action.Wait) //viewmodel interpretiert input zu action (MVVM und so)
     var inventory: List<ItemInstance> = emptyList()

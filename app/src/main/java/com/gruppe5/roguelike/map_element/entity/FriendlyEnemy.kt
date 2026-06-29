@@ -13,14 +13,37 @@ class FriendlyEnemy(
     stats: StatModifier,
     position: Position,
 ) : ChaseEnemy(stats, position, R.drawable.entity_friendly) {
-    override val groups: Set<Group> = setOf(Group.FRIENDLY)
+    override var groups: Set<Group> = setOf(Group.NEUTRAL)
     override val targets: Set<Group> = setOf(Group.ENEMY)
 
     override fun act(ctx: TurnContext, times: Int): List<Action> {
-        if (ctx.nearestTo(position, targets, this) != null) return super.act(ctx, times)
-
         val player = ctx.nearestTo(position, setOf(Group.PLAYER), this) ?: return listOf(Action.Wait)
+
+        if (Group.NEUTRAL in groups) {
+            if (position.distanceTo(player.position) > JOIN_DISTANCE) return approach(ctx, player, times)
+            groups = setOf(Group.PLAYERFRIEND)
+        }
+
+        val target = ctx.nearestTo(position, targets, this)
+        if (target != null && moves.any { position + it == target.position }) {
+            return List(times) { Action.Attack(target) }
+        }
+        if (target != null) {
+            path = Pathfinding.findPath(ctx.map, ctx.entities - target, position, target.position, moves, heuristic, ignoreWalls)
+            path.getOrNull(1)?.let { step ->
+                if (step.distanceTo(player.position) <= LEASH) return listOf(Action.Move(step))
+            }
+        }
+        return approach(ctx, player, times)
+    }
+
+    private fun approach(ctx: TurnContext, player: Entity, times: Int): List<Action> {
         path = Pathfinding.findPath(ctx.map, ctx.entities - player, position, player.position, moves, heuristic, ignoreWalls)
         return path.drop(1).take(times).map { Action.Move(it) }.ifEmpty { listOf(Action.Wait) }
+    }
+
+    companion object {
+        private const val JOIN_DISTANCE = 5
+        private const val LEASH = 10
     }
 }

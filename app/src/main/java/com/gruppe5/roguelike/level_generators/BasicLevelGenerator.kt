@@ -72,7 +72,7 @@ class BasicLevelGenerator: LevelGenerator {
         val mapPercentUsed = 0.2 //for now to keep the enemies close to spawn
         val startPos = getStartPos()
         val enemies: MutableList<Enemy> = mutableListOf()
-        val targetEnemyCount = 16
+        val targetEnemyCount = 24
 
         val validPositions = mutableListOf<Position>()
         for (y in startPos.y + spawnProtectedArea until (tilemap.size*mapPercentUsed).toInt()) {
@@ -109,14 +109,14 @@ class BasicLevelGenerator: LevelGenerator {
             enemies.add(randomEnemyFactory(spawnPos))
         }
 
-        // TODO später richtige Conway-Fabriken (Blinker/Gleiter) seeden; vorerst ein stabiler 2x2-Block
-        val blockMaxY = (tilemap.size * mapPercentUsed).toInt() - 1
-        val blockMaxX = (tilemap[0].size * mapPercentUsed).toInt() - 1
-        outer@ for (y in startPos.y + spawnProtectedArea until blockMaxY) {
-            for (x in startPos.x + spawnProtectedArea until blockMaxX) {
-                val block = listOf(Position(x, y), Position(x + 1, y), Position(x, y + 1), Position(x + 1, y + 1))
-                if (block.all { !tilemap[it.y][it.x].type.isWall && enemies.none { e -> e.position == it } }) {
-                    block.forEach { enemies.add(BlightEnemy(StatModifier(maxHealth = 1, health = 1, attack = 1), it)) }
+        val glider = listOf(Position(1, 0), Position(2, 1), Position(0, 2), Position(1, 2), Position(2, 2))
+        val gliderMaxY = (tilemap.size * mapPercentUsed).toInt() - 3
+        val gliderMaxX = (tilemap[0].size * mapPercentUsed).toInt() - 3
+        outer@ for (y in startPos.y until gliderMaxY) {
+            for (x in startPos.x until gliderMaxX) {
+                val cells = glider.map { Position(x + it.x, y + it.y) }
+                if (cells.all { it != startPos && !tilemap[it.y][it.x].type.isWall && enemies.none { e -> e.position == it } }) {
+                    cells.forEach { enemies.add(BlightEnemy(StatModifier(maxHealth = 1, health = 1, attack = 1), it)) }
                     break@outer
                 }
             }

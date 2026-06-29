@@ -22,7 +22,7 @@ class RangeSightedEnemy(
     ) : this(stats, position, lineOfSight, lineOfSight, resId)
 
     private var chasing: Boolean = false
-
+//TODO seal-re-audit
     override fun act(ctx: TurnContext, times: Int): List<Action> {
         val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
         val distance = position.distanceTo(target.position)

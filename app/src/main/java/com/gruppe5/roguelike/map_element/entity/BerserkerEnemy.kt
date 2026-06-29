@@ -10,5 +10,5 @@ class BerserkerEnemy(
     stats: StatModifier,
     position: Position,
 ) : ChaseEnemy(stats, position, R.drawable.entity_berserker) {
-    override val targets: Set<Group> = setOf(Group.PLAYER, Group.ENEMY, Group.FRIENDLY)
+    override val targets: Set<Group> = setOf(Group.PLAYER, Group.ENEMY, Group.NEUTRAL, Group.PLAYERFRIEND)
 }

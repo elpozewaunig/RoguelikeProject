@@ -13,7 +13,7 @@ abstract class Enemy(
     override var position: Position,
 ) : Entity, TurnTaker {
     override val groups: Set<Group> = setOf(Group.ENEMY)
-    open val targets: Set<Group> = setOf(Group.PLAYER)
+    open val targets: Set<Group> = setOf(Group.PLAYER, Group.PLAYERFRIEND)
     open val speed: Float = 1f
 
     var path: List<Position> = emptyList() //nur für debug displayment
