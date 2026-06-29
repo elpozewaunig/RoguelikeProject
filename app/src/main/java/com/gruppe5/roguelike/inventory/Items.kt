@@ -10,7 +10,7 @@ object Items {
     fun sword() = ItemInstance(
         definition = StatBuffItem(
             label = "Sword",
-            imageResId = R.drawable.entity_ranged,
+            imageResId = R.drawable.item_leek,
             buff = Buff(
                 duration = 3,
                 statsMod = StatModifier(attack = 10)
@@ -22,7 +22,7 @@ object Items {
     fun mediumHealthPotion() = ItemInstance(
         definition = HealAbsoluteItem(
             label = "Health Potion",
-            imageResId = R.drawable.entity_miku,
+            imageResId = R.drawable.item_health_potion,
             healthAmount = 75,
             isPermanent = false
         ),
@@ -31,7 +31,7 @@ object Items {
     fun opStrengthPotion() = ItemInstance(
         definition = StatBuffItem(
             label = "Strength Potion",
-            imageResId = R.drawable.entity_miku,
+            imageResId = R.drawable.item_strength_potion,
             buff = Buff(
                 duration = 3,
                 statsMod = StatModifier(attack = 100) //3 Turns viel zu stark zum testen
