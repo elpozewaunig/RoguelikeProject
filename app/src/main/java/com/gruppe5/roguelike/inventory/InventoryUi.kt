@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.imageResource
@@ -36,14 +38,16 @@ fun InventoryDisplay(
     Row(
         modifier = modifier
             .fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        horizontalArrangement = Arrangement.Center
     ) {
         repeat(slots) { index ->
             val item = inventory.getOrNull(index)
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(1f, false)
+                    .width(70.dp) // acts as maximum width
                     .aspectRatio(1f)
+                    .padding(4.dp)
                     .border(1.dp, Color.Gray)
                     .background(Color.DarkGray)
                     .clickable { onItemClick(index) },

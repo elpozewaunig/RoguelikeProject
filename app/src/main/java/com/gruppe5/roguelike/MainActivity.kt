@@ -214,7 +214,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
             onItemClick = model::onInventorySlotClicked,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 67.dp)
+                .padding(top = 50.dp)
                 .padding(horizontal = 8.dp)
         )
 
