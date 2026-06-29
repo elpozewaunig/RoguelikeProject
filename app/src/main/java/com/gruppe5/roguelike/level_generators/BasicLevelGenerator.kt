@@ -1,9 +1,11 @@
 package com.gruppe5.roguelike.level_generators
 
 import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.entity.BerserkerEnemy
 import com.gruppe5.roguelike.map_element.entity.ChaseEnemy
 import com.gruppe5.roguelike.map_element.entity.ElephantEnemy
 import com.gruppe5.roguelike.map_element.entity.Enemy
+import com.gruppe5.roguelike.map_element.entity.FriendlyEnemy
 import com.gruppe5.roguelike.map_element.entity.GhostEnemy
 import com.gruppe5.roguelike.map_element.entity.KnightEnemy
 import com.gruppe5.roguelike.map_element.entity.RangeSightedEnemy
@@ -90,7 +92,9 @@ class BasicLevelGenerator: LevelGenerator {
             { pos -> ChaseEnemy(StatModifier(maxHealth = 12, health = 12, attack = 3, defense = 1), pos) },
             { pos -> RangeSightedEnemy(StatModifier(maxHealth = 8, health = 8, attack = 3), pos, lineOfSight = 2) },
             { pos -> ElephantEnemy(StatModifier(maxHealth = 8, health = 8, attack = 6, defense = 3), pos) },
-            { pos -> GhostEnemy(StatModifier(maxHealth = 8, health = 8, attack = 4), pos) }
+            { pos -> GhostEnemy(StatModifier(maxHealth = 8, health = 8, attack = 4), pos) },
+            { pos -> BerserkerEnemy(StatModifier(maxHealth = 14, health = 14, attack = 5, defense = 1), pos) }, //selten
+            { pos -> FriendlyEnemy(StatModifier(maxHealth = 12, health = 12, attack = 4, defense = 1), pos) }  //selten
         )
 
         for (i in 0 until spawnCount) {

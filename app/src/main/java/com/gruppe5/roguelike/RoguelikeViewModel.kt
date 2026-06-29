@@ -50,7 +50,7 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
 
     private fun runTurn(ctx: TurnContext = buildContext()) {
         takeTurn(player, ctx)
-        enemies.forEach { takeTurn(it, ctx) }
+        enemies.toList().forEach { takeTurn(it, ctx) }
 
         player.queued = listOf(Action.Wait)
         turn++
@@ -111,7 +111,7 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
         }
     }
 
-    private fun buildContext(): TurnContext = TurnContext(currentMap, enemies, player)
+    private fun buildContext(): TurnContext = TurnContext(currentMap, listOf(player) + enemies)
 
     private fun isValidPosition(pos: Position): Boolean =
         pos.y >= 0 && pos.x >= 0 &&

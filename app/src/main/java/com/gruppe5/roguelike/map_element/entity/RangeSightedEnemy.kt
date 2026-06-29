@@ -24,7 +24,8 @@ class RangeSightedEnemy(
     private var chasing: Boolean = false
 
     override fun decideAction(ctx: TurnContext): List<Action> {
-        val distance = position.distanceTo(ctx.player.position)
+        val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
+        val distance = position.distanceTo(target.position)
 
         if (chasing) {
             if (distance > loseLineOfSight) chasing = false

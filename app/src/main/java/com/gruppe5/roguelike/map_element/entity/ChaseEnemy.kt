@@ -19,15 +19,17 @@ open class ChaseEnemy(
     protected open val ignoreWalls: Boolean = false
 
     override fun decideAction(ctx: TurnContext): List<Action> {
-        if (moves.any { position + it == ctx.player.position }) {
-            return listOf(Action.Attack(ctx.player))
+        val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
+
+        if (moves.any { position + it == target.position }) {
+            return listOf(Action.Attack(target))
         }
 
         path = Pathfinding.findPath(
             ctx.map,
-            ctx.enemies,
+            ctx.entities - target,
             position,
-            ctx.player.position,
+            target.position,
             moves,
             ignoreWalls
         )
