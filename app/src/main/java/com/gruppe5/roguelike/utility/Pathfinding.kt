@@ -7,6 +7,7 @@ import java.util.ArrayList
 import java.util.LinkedHashMap
 import java.util.PriorityQueue
 import kotlin.math.abs
+import kotlin.math.max
 
 class Cell {
     var parentI: Int = -1
@@ -42,12 +43,24 @@ object Pathfinding {
         Position(-1, -2), Position(-2, -1)
     )
 
+    // schach Läufer (ein Feld)
+    val DIAGONAL_MOVES: List<Position> = listOf(
+        Position(1, 1), Position(1, -1),
+        Position(-1, 1), Position(-1, -1)
+    )
+
+    // Admissible heuristics, dependency-injected per movement profile (every hop costs 1).
+    val MANHATTAN: (Position, Position) -> Double = { a, b -> a.distanceTo(b).toDouble() }
+    val KNIGHT: (Position, Position) -> Double = { a, b -> a.distanceTo(b) / 3.0 }
+    val CHEBYSHEV: (Position, Position) -> Double = { a, b -> max(abs(a.x - b.x), abs(a.y - b.y)).toDouble() }
+
     fun findPath(
         map: List<List<MapTile>>,
         entities: List<Entity>,
         start: Position,
         goal: Position,
         moves: List<Position> = ORTHOGONAL_MOVES,
+        heuristic: (Position, Position) -> Double = MANHATTAN,
         ignoreWalls: Boolean = false
     ): List<Position> {
         val rowCount = map.size
@@ -69,10 +82,6 @@ object Pathfinding {
             return emptyList()
         }
 
-        // A single hop closes at most this much Manhattan distance, so dividing the heuristic by it
-        // keeps the estimate admissible for any movement profile (1 for orthogonal, 3 for knights).
-        val maxReach = moves.maxOf { abs(it.x) + abs(it.y) }
-
         val closedList = Array(rowCount) { BooleanArray(colCount) }
         val cellDetails = Array(rowCount) { Array(colCount) { Cell() } }
 
@@ -80,7 +89,7 @@ object Pathfinding {
         var j = start.x
         cellDetails[i][j].f = 0.0
         cellDetails[i][j].g = 0.0
-        cellDetails[i][j].h = calculateHValue(i, j, goal, maxReach)
+        cellDetails[i][j].h = heuristic(Position(j, i), goal)
         cellDetails[i][j].parentI = i
         cellDetails[i][j].parentJ = j
 
@@ -127,7 +136,7 @@ object Pathfinding {
                 }
 
                 val gNew = cellDetails[i][j].g + 1.0
-                val hNew = calculateHValue(newRow, newCol, goal, maxReach)
+                val hNew = heuristic(Position(newCol, newRow), goal)
                 val fNew = gNew + hNew
 
                 if (cellDetails[newRow][newCol].f == Double.POSITIVE_INFINITY ||
@@ -169,10 +178,6 @@ object Pathfinding {
 
     private fun isDestination(row: Int, col: Int, dest: Position): Boolean {
         return row == dest.y && col == dest.x
-    }
-
-    private fun calculateHValue(row: Int, col: Int, dest: Position, maxReach: Int): Double {
-        return Position(col, row).distanceTo(dest).toDouble() / maxReach
     }
 
     /**

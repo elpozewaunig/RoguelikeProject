@@ -20,7 +20,7 @@ class FriendlyEnemy(
         if (ctx.nearestTo(position, targets, this) != null) return super.decideAction(ctx)
 
         val player = ctx.nearestTo(position, setOf(Group.PLAYER), this) ?: return listOf(Action.Wait)
-        path = Pathfinding.findPath(ctx.map, ctx.entities - player, position, player.position, moves, ignoreWalls)
+        path = Pathfinding.findPath(ctx.map, ctx.entities - player, position, player.position, moves, heuristic, ignoreWalls)
         return if (path.size > 1) listOf(Action.Move(path[1])) else listOf(Action.Wait)
     }
 }

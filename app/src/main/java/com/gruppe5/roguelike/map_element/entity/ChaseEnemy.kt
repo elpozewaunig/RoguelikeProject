@@ -16,6 +16,8 @@ open class ChaseEnemy(
 
     protected open val moves: List<Position> = Pathfinding.ORTHOGONAL_MOVES
 
+    protected open val heuristic: (Position, Position) -> Double = Pathfinding.MANHATTAN
+
     protected open val ignoreWalls: Boolean = false
 
     override fun decideAction(ctx: TurnContext): List<Action> {
@@ -31,6 +33,7 @@ open class ChaseEnemy(
             position,
             target.position,
             moves,
+            heuristic,
             ignoreWalls
         )
         return if (path.size > 1) listOf(Action.Move(path[1])) else listOf(Action.Wait)

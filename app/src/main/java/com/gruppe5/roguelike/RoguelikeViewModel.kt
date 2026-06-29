@@ -98,6 +98,13 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
                 action.target.takeDamage(actor.getAttackDamage())
                 checkDeath(action.target)
             }
+            is Action.Spawn -> {
+                val pos = action.entity.position
+                if (player.position != pos && enemies.none { it.position == pos }) {
+                    enemies.add(action.entity)
+                }
+            }
+            Action.Die -> if (actor is Enemy) enemies.remove(actor)
             Action.Wait -> Unit
         }
     }

@@ -11,4 +11,5 @@ class KnightEnemy(
     position: Position,
 ) : ChaseEnemy(stats, position, R.drawable.entity_knight) {
     override val moves: List<Position> = Pathfinding.KNIGHT_MOVES
+    override val heuristic: (Position, Position) -> Double = Pathfinding.KNIGHT
 }

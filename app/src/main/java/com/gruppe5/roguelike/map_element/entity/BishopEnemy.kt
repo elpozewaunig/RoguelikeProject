@@ -1,0 +1,15 @@
+package com.gruppe5.roguelike.map_element.entity
+
+import com.gruppe5.roguelike.R
+import com.gruppe5.roguelike.property.Position
+import com.gruppe5.roguelike.property.StatModifier
+import com.gruppe5.roguelike.utility.Pathfinding
+
+/** Der Läufer aus Schach (farbgebunden wie im echten Schach) */
+class BishopEnemy(
+    stats: StatModifier,
+    position: Position,
+) : ChaseEnemy(stats, position, R.drawable.entity_bishop) {
+    override val moves: List<Position> = Pathfinding.DIAGONAL_MOVES
+    override val heuristic: (Position, Position) -> Double = Pathfinding.CHEBYSHEV
+}
