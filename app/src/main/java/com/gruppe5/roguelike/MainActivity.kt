@@ -166,7 +166,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
         // Viewport culling: compose only the tiles that can be visible during this move
         // (on-screen window + a small margin for the in-flight pan), turning ~10k tile
         // composables into a few hundred. Window is derived from the (stable) target.
-        val cullMargin = 2
+        val cullMargin = 4
         val minX = (((-targetOffset.x.value) / TILE_SIZE).toInt() - cullMargin).coerceIn(0, map[0].size - 1)
         val maxX = (((screenWidth.value - targetOffset.x.value) / TILE_SIZE).toInt() + cullMargin).coerceIn(0, map[0].size - 1)
         val minY = (((-targetOffset.y.value) / TILE_SIZE).toInt() - cullMargin).coerceIn(0, map.size - 1)
