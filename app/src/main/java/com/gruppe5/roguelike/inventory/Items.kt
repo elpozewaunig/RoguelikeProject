@@ -8,36 +8,30 @@ import com.gruppe5.roguelike.property.StatModifier
 
 object Items {
     fun sword() = ItemInstance(
-        definition = StatBuffItem(
+        StatBuffItem(
             label = "Sword",
             imageResId = R.drawable.item_leek,
-            buff = Buff(
-                duration = 3,
-                statsMod = StatModifier(attack = 10)
-            ),
-            isPermanent = true
+            buff = Buff(duration = 3, statsMod = StatModifier(attack = 10)),
+            isPermanent = true,
         ),
-        initialUsages = 1
+        usages = 1,
     )
+
     fun mediumHealthPotion() = ItemInstance(
-        definition = HealAbsoluteItem(
+        HealAbsoluteItem(
             label = "Health Potion",
             imageResId = R.drawable.item_health_potion,
             healthAmount = 75,
-            isPermanent = false
         ),
-        initialUsages = 3
+        usages = 3,
     )
+
     fun opStrengthPotion() = ItemInstance(
-        definition = StatBuffItem(
+        StatBuffItem(
             label = "Strength Potion",
             imageResId = R.drawable.item_strength_potion,
-            buff = Buff(
-                duration = 3,
-                statsMod = StatModifier(attack = 100) //3 Turns viel zu stark zum testen
-            ),
-            isPermanent = false
+            buff = Buff(duration = 3, statsMod = StatModifier(attack = 100)), //3 Turns viel zu stark zum testen
         ),
-        initialUsages = 1
+        usages = 1,
     )
 }

@@ -1,16 +1,19 @@
 package com.gruppe5.roguelike.inventory.item_types
 
-import com.gruppe5.roguelike.inventory.ItemDefinition
 import com.gruppe5.roguelike.inventory.ItemInstance
 import com.gruppe5.roguelike.map_element.entity.Player
 import com.gruppe5.roguelike.property.ActiveBuff
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
+@SerialName("heal_absolute")
 class HealAbsoluteItem(
-    label: String,
-    imageResId: Int,
+    override val label: String,
+    override val imageResId: Int,
     val healthAmount: Int,
-    isPermanent: Boolean = false
-) : ItemDefinition(label, imageResId, isPermanent) {
+    override val isPermanent: Boolean = false,
+) : ItemDefinition() {
     override fun onUse(instance: ItemInstance, player: Player): List<ActiveBuff> {
         val newHealth = (player.stats.health + healthAmount).coerceAtMost(player.stats.maxHealth)
         player.stats.health = newHealth

@@ -7,14 +7,19 @@ import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
 import com.gruppe5.roguelike.turn.TurnContext
 import com.gruppe5.roguelike.utility.Pathfinding
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /** Folgt dem Spieler und kämpft gegen Gegner mit */
+@Serializable
+@SerialName("friendly")
 class FriendlyEnemy(
-    stats: StatModifier,
-    position: Position,
-) : ChaseEnemy(stats, position, R.drawable.entity_friendly) {
-    override var groups: Set<Group> = setOf(Group.NEUTRAL)
-    override val targets: Set<Group> = setOf(Group.ENEMY)
+    override var stats: StatModifier,
+    override var position: Position,
+) : Chaser() {
+    override val resId: Int get() = R.drawable.entity_friendly
+    override var groups: Set<Group> = setOf(Group.NEUTRAL) //NEUTRAL -> PLAYERFRIEND flip, serialisierter zustand
+    override val targets: Set<Group> get() = setOf(Group.ENEMY)
 
     override fun act(ctx: TurnContext, times: Int): List<Action> {
         val player = ctx.nearestTo(position, setOf(Group.PLAYER), this) ?: return listOf(Action.Wait)

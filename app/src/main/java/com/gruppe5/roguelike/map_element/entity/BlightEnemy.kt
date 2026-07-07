@@ -5,13 +5,17 @@ import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
 import com.gruppe5.roguelike.turn.TurnContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /** Conway's Game of Life: prüft jede Runde die Nachbarn und stirbt oder wächst */
+@Serializable
+@SerialName("blight")
 class BlightEnemy(
-    stats: StatModifier,
-    position: Position,
-) : Enemy(stats, position) {
-    override val resId: Int = R.drawable.entity_blight
+    override var stats: StatModifier,
+    override var position: Position,
+) : Enemy() {
+    override val resId: Int get() = R.drawable.entity_blight
 
     override fun act(ctx: TurnContext, times: Int): List<Action> {
         val living = blightNeighbours(ctx, position)

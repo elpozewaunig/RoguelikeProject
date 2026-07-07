@@ -6,14 +6,18 @@ import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
 import com.gruppe5.roguelike.turn.TurnContext
 import com.gruppe5.roguelike.utility.Pathfinding
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
 /** Jagt per A*, beißt orthogonal und lässt eine Schwanzspur der Länge l zurück */
+@Serializable
+@SerialName("snakehead")
 class SnakeHeadEnemy(
-    stats: StatModifier,
-    position: Position,
+    override var stats: StatModifier,
+    override var position: Position,
     val bodyLifetime: Int = 4,
-) : ChaseEnemy(stats, position, R.drawable.entity_snakehead) {
-
+) : Chaser() {
+    override val resId: Int get() = R.drawable.entity_snakehead
     var alive: Boolean = true
 
     override fun act(ctx: TurnContext, times: Int): List<Action> {
@@ -36,7 +40,7 @@ class SnakeHeadEnemy(
         )
         return actions
     }
-//TODO reconsider + body doesn't die correctly when head gets slain (dies correctly when head is blocked in)
+
     private fun chooseStep(ctx: TurnContext, target: Entity?, from: Position): Position? {
         val free = moves.map { from + it }.filter { isFree(ctx, it) }
         if (free.isEmpty()) return null

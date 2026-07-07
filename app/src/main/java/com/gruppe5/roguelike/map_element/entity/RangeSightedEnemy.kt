@@ -5,24 +5,23 @@ import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
 import com.gruppe5.roguelike.turn.TurnContext
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 
+@Serializable
+@SerialName("ranged")
 class RangeSightedEnemy(
-    stats: StatModifier,
-    position: Position,
+    override var stats: StatModifier,
+    override var position: Position,
     val findLineOfSight: Int,
     val loseLineOfSight: Int,
-    resId: Int = R.drawable.entity_ranged
-) : ChaseEnemy(stats, position, resId) {
+) : Chaser() {
+    override val resId: Int get() = R.drawable.entity_ranged
+    var chasing: Boolean = false //interner zustand, muss persistiert werden
 
-    constructor(
-        stats: StatModifier,
-        position: Position,
-        lineOfSight: Int,
-        resId: Int = R.drawable.entity_ranged
-    ) : this(stats, position, lineOfSight, lineOfSight, resId)
+    constructor(stats: StatModifier, position: Position, lineOfSight: Int)
+        : this(stats, position, lineOfSight, lineOfSight)
 
-    private var chasing: Boolean = false
-//TODO seal-re-audit
     override fun act(ctx: TurnContext, times: Int): List<Action> {
         val target = ctx.nearestTo(position, targets, this) ?: return listOf(Action.Wait)
         val distance = position.distanceTo(target.position)

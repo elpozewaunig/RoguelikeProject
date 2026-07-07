@@ -1,65 +1,88 @@
 package com.gruppe5.roguelike
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
-import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import com.gruppe5.roguelike.level_generators.BasicLevelGenerator
 import com.gruppe5.roguelike.level_generators.LevelGenerator
 import com.gruppe5.roguelike.inventory.ItemInstance
 import com.gruppe5.roguelike.inventory.Items
 import com.gruppe5.roguelike.property.ActiveBuff
-import com.gruppe5.roguelike.map_element.MapTile
-import com.gruppe5.roguelike.map_element.entity.Enemy
-import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.map_element.entity.Player
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
 import com.gruppe5.roguelike.turn.TurnContext
-import com.gruppe5.roguelike.turn.TurnTaker
+import com.gruppe5.roguelike.turn.TurnEngine
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely internal states haben die auch mit serialized werden müssen, entweder memento pattern oder etwas schönes kotlin-idiomatic dafür pullen
+class RoguelikeViewModel(gameDao: GameDao) : ViewModel() {
+    private val repository: GameRepository = GameRepository(gameDao)
     private val mapGenerator: LevelGenerator = BasicLevelGenerator()
-    val currentMap: List<List<MapTile>> = mapGenerator.getMap()
-    val inventory = mutableStateListOf<ItemInstance>()
-    val activeBuffs = mutableStateListOf<ActiveBuff>()
+    private val _uiState = MutableStateFlow(initialState())
+    val uiState: StateFlow<GameState> = _uiState.asStateFlow()
 
-    val player: Player = Player(
-        StatModifier(maxHealth = 500, health = 500, attack = 5, defense = 2),
-        position = mapGenerator.getStartPos()
-    )
-
-    val enemies = mapGenerator.getEnemies().toMutableStateList() //TODO des sollt recomposition-mäßig passen (i glaub)
-    var turn by mutableIntStateOf(0)
-    var isGameOver by mutableStateOf(false)
-        private set
+    private val state: GameState get() = _uiState.value
 
     init {
-        val items = listOf(
-            Items.mediumHealthPotion(),
-            Items.opStrengthPotion(),
-            Items.sword()
-        )
+        viewModelScope.launch {
+            //gespeichertes game weiterspielen falls vorhanden (game-over saves interessieren uns ned)
+            repository.load()?.takeIf { !it.isGameOver }?.let { _uiState.value = it }
+        }
+    }
 
-        addPlayerInventory(items)
+    private fun initialState(): GameState {
+        val inventory = mutableListOf<ItemInstance>()
+        val activeBuffs = mutableListOf<ActiveBuff>()
+        val player = Player(
+            StatModifier(maxHealth = 500, health = 500, attack = 5, defense = 2),
+            position = mapGenerator.getStartPos()
+        )
+        //start-items: die engine mutiert player/inventory/buffs in place (perma-buffs), unverändert
+        TurnEngine.addPlayerInventory(
+            listOf(Items.mediumHealthPotion(), Items.opStrengthPotion(), Items.sword()),
+            inventory, player, activeBuffs
+        )
         player.inventory = inventory
+        return GameState(
+            map = mapGenerator.getMap(),
+            player = player,
+            enemies = mapGenerator.getEnemies(),
+            inventory = inventory,
+            activeBuffs = activeBuffs,
+            turn = 0,
+            isGameOver = false,
+        )
+    }
+
+    //von MainActivity.onStop aufgerufen, apps können jederzeit gekillt werden
+    fun saveGame() {
+        val snapshot = state
+        viewModelScope.launch {
+            if (snapshot.isGameOver) repository.clear() else repository.save(snapshot)
+        }
+    }
+    
+    fun loadGame() {
+        viewModelScope.launch {
+            repository.load()?.let { _uiState.value = it }
+        }
     }
 
     private fun submitPlayerMove(dx: Int, dy: Int) {
-        if (isGameOver) return
+        if (state.isGameOver) return
 
-        val target = Position(player.position.x + dx, player.position.y + dy)
+        val target = Position(state.player.position.x + dx, state.player.position.y + dy)
 
         // des muss nur hier beim resolven von player tap to move gemacht werden, die enemies müssen sich selber drum kümmern nicht zum cheaten
         if (!isValidPosition(target)) return
-        if (currentMap[target.y][target.x].type.isWall) return
+        if (state.map[target.y][target.x].type.isWall) return
 
         val ctx = buildContext()
-        player.queued = ctx.getEntityAt(target)
+        state.player.queued = ctx.getEntityAt(target)
             ?.let { listOf(Action.Attack(it)) }
             ?: listOf(Action.Move(target))
 
@@ -67,73 +90,27 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
     }
 
     private fun runTurn(ctx: TurnContext = buildContext()) {
-        takeTurn(player, ctx)
-        enemies.toList().forEach { takeTurn(it, ctx) }
-
-        handleExpiredBuffs()
-
-        player.queued = listOf(Action.Wait)
-        turn++
+        val s = state
+        val enemies = s.enemies.toMutableList()
+        val activeBuffs = s.activeBuffs.toMutableList()
+        val over = TurnEngine.runTurn(ctx, s.player, enemies, activeBuffs)
+        _uiState.value = s.copy(
+            enemies = enemies,
+            activeBuffs = activeBuffs,
+            turn = s.turn + 1,
+            isGameOver = s.isGameOver || over,
+        )
     }
 
-    private fun handleExpiredBuffs(){
-        val expired = mutableListOf<ActiveBuff>()
-        activeBuffs.forEach { buff ->
-            if (buff.remainingTurns > 0) {
-                buff.remainingTurns -= 1
-                if (buff.remainingTurns <= 0) expired.add(buff)
-            }
-        }
-        expired.forEach { removeBuff(it) }
-    }
-
-    private fun <T> takeTurn(actor: T, ctx: TurnContext) where T : Entity, T : TurnTaker {
-        actor.decideAction(ctx).forEach { action -> execute(actor, action, ctx) }
-    }
-
-    /**
-     * schaut de-facto kompliziert aus, is es aber nit
-     */
-    private fun execute(actor: Entity, action: Action, ctx: TurnContext) {
-        when (action) {
-            is Action.Move -> {
-                if (ctx.getEntityAt(action.to) == null) {
-                    actor.position = action.to
-                }
-            }
-            is Action.Attack -> {
-                action.target.takeDamage(actor.getAttackDamage())
-                checkDeath(action.target)
-            }
-            is Action.Spawn -> {
-                val pos = action.entity.position
-                if (player.position != pos && enemies.none { it.position == pos }) {
-                    enemies.add(action.entity)
-                }
-            }
-            Action.Die -> if (actor is Enemy) enemies.remove(actor)
-            Action.Wait -> Unit
-        }
-    }
-
-    //TODO enemy dies -> despawn, player dies -> crash app; ok?
-    private fun checkDeath(target: Entity) {
-        if (target.stats.health > 0) return
-        when (target) {
-            is Enemy -> enemies.remove(target)
-            is Player -> isGameOver = true
-        }
-    }
-
-    private fun buildContext(): TurnContext = TurnContext(currentMap, listOf(player) + enemies)
+    private fun buildContext(): TurnContext = TurnContext(state.map, listOf(state.player) + state.enemies)
 
     private fun isValidPosition(pos: Position): Boolean =
         pos.y >= 0 && pos.x >= 0 &&
-            pos.y < currentMap.size && pos.x < currentMap[pos.y].size
+            pos.y < state.map.size && pos.x < state.map[pos.y].size
 
     fun moveSkip() {
-        if (isGameOver) return
-        player.queued = listOf(Action.Wait)
+        if (state.isGameOver) return
+        state.player.queued = listOf(Action.Wait)
         runTurn()
     }
 
@@ -145,92 +122,23 @@ class RoguelikeViewModel : ViewModel() { //TODO die enemies werden most likely i
 
     fun moveUp() = submitPlayerMove(0, -1)
 
-    fun onInventorySlotClicked(index: Int) {
-        val currentItem = inventory.getOrNull(index)
-        if (currentItem == null) return
-
-        val buffs = currentItem.use(player)
-        buffs.forEach { applyBuff(it) }
-
-        currentItem.usages -= 1
-
-        if (currentItem.usages <= 0) {
-            //anlicken von perma item entfernt dieses item + buffs
-            if (currentItem.isPermanent) {
-                removePermaBuffsForInstance(currentItem)
-                //TODO hier könnte drop logik hinzugefügt werden falls ma noch zeit ham
-            }
-            inventory.removeAt(index)
-        }
+    fun onInventorySlotClicked(index: Int) = mutateInventory { inventory, activeBuffs ->
+        TurnEngine.useItem(index, inventory, state.player, activeBuffs)
     }
 
-    //wenn vorher clearen notwendig ist
-    fun setPlayerInventory(items: List<ItemInstance>) {
-        resetInventory()
-        addPlayerInventory(items)
+    private inline fun mutateInventory(block: (MutableList<ItemInstance>, MutableList<ActiveBuff>) -> Unit) {
+        val s = state
+        val inventory = s.inventory.toMutableList()
+        val activeBuffs = s.activeBuffs.toMutableList()
+        block(inventory, activeBuffs)
+        s.player.inventory = inventory
+        _uiState.value = s.copy(inventory = inventory, activeBuffs = activeBuffs)
     }
+}
 
-    fun addPlayerInventory(items: List<ItemInstance>){
-        inventory.addAll(items.take(GameConfig.INVENTORY_SLOTS))
-        inventory.forEach { processPermaBuffs(it) }
-    }
-
-    private fun resetInventory(){
-        val permPrefix = "perm-"
-        val toRemove = activeBuffs.filter { it.id.startsWith(permPrefix) }
-        toRemove.forEach { removeBuff(it) }
-        inventory.clear()
-    }
-
-    private fun applyBuff(buff: ActiveBuff) {
-        activeBuffs.add(buff)
-
-        player.stats.maxHealth += buff.statsMod.maxHealth
-        player.stats.attack += buff.statsMod.attack
-        player.stats.minDamageBuff += buff.statsMod.minDamageBuff
-        player.stats.maxDamageBuff += buff.statsMod.maxDamageBuff
-        player.stats.defense += buff.statsMod.defense
-        player.stats.intellect += buff.statsMod.intellect
-        player.stats.stealth += buff.statsMod.stealth
-        player.stats.speed += buff.statsMod.speed
-    }
-
-    private fun removeBuff(buff: ActiveBuff) {
-
-        player.stats.maxHealth -= buff.statsMod.maxHealth
-        player.stats.attack -= buff.statsMod.attack
-        player.stats.minDamageBuff -= buff.statsMod.minDamageBuff
-        player.stats.maxDamageBuff -= buff.statsMod.maxDamageBuff
-        player.stats.defense -= buff.statsMod.defense
-        player.stats.intellect -= buff.statsMod.intellect
-        player.stats.stealth -= buff.statsMod.stealth
-        player.stats.speed -= buff.statsMod.speed
-
-        // falls overhealing möglich sein soll, hier entfernen
-        if (player.stats.health > player.stats.maxHealth) {
-            player.stats.health = player.stats.maxHealth
-        }
-
-        activeBuffs.remove(buff)
-    }
-
-    //jedes Item im game selbst is a eigenes Instance objekt, weshalb es sicher ist
-    //erlaubt für später mehrere buffs pro item
-    private fun processPermaBuffs(instance: ItemInstance) {
-        if (!instance.isPermanent) return
-
-        //perma buff
-        val buffs = instance.definition.onUse(instance, player)
-        buffs.forEach { base ->
-            val id = "perm-${System.identityHashCode(instance)}-${System.currentTimeMillis()}"
-            val perm = ActiveBuff(id = id, statsMod = base.statsMod, remainingTurns = -1)
-            applyBuff(perm)
-        }
-    }
-
-    private fun removePermaBuffsForInstance(instance: ItemInstance) {
-        val prefix = "perm-${System.identityHashCode(instance)}"
-        val toRemove = activeBuffs.filter { it.id.startsWith(prefix) } //zeit is nid relevant
-        toRemove.forEach { removeBuff(it) }
+class RoguelikeViewModelFactory(private val dao: GameDao) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        @Suppress("UNCHECKED_CAST")
+        return RoguelikeViewModel(dao) as T
     }
 }

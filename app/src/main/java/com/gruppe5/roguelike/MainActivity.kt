@@ -4,10 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,10 +21,12 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +40,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.style.TextAlign
@@ -46,10 +51,15 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.room.Database
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.gruppe5.roguelike.inventory.InventoryDisplay
 import com.gruppe5.roguelike.map_element.MapTile
+import com.gruppe5.roguelike.map_element.MapTileEntity
 import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.entity.Entity
+import com.gruppe5.roguelike.property.BuffEntity
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 import kotlin.math.abs
@@ -57,7 +67,28 @@ import kotlin.math.abs
 const val DEBUG_MODE = false
 const val TILE_SIZE = 50
 
+@Database(
+    entities = [GameEntity::class, MapTileEntity::class, BuffEntity::class],
+    version = 1,
+    exportSchema = false,
+)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun gameDao(): GameDao
+}
+
 class MainActivity : ComponentActivity() {
+    private val db by lazy {
+        Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            "roguelike_database"
+        ).build()
+    }
+
+    private val model: RoguelikeViewModel by viewModels {
+        RoguelikeViewModelFactory(db.gameDao())
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -68,11 +99,17 @@ class MainActivity : ComponentActivity() {
                     containerColor = (Color.Black),
                 ) { innerPadding ->
                     MainScreen(
-                        modifier = Modifier.padding(innerPadding)
+                        modifier = Modifier.padding(innerPadding),
+                        model = model
                     )
                 }
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        model.saveGame() //apps können jederzeit gekillt werden -> hier persistieren
     }
 }
 
@@ -89,12 +126,13 @@ fun dpAnimate(current: Dp, target: Dp, delta: Double, speed: Double): Dp {
 }
 
 @Composable
-fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewModel()) {
-    val map = model.currentMap
-    val player = model.player
-    val enemies = model.enemies
-    val turn = model.turn
-    val inventory = model.inventory
+fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel) {
+    val state by model.uiState.collectAsState()
+    val map = state.map
+    val player = state.player
+    val enemies = state.enemies
+    val turn = state.turn
+    val inventory = state.inventory
 
     val windowInfo = LocalWindowInfo.current
     val screenWidth = windowInfo.containerDpSize.width
@@ -234,7 +272,7 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                         textAlign = TextAlign.Right
                     )
                 }
-                if (model.isGameOver) { //leitner-approved
+                if (state.isGameOver) { //leitner-approved
                     Text(
                         text = "Game Over",
                         color = Color.Red,
@@ -244,6 +282,16 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel = viewMo
                     )
                 }
             }
+        }
+
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Button(onClick = model::saveGame) { Text("Save") }
+            Button(onClick = model::loadGame) { Text("Load") }
         }
     }
 
@@ -286,11 +334,15 @@ fun HealthBar(current: Int, max: Int, modifier: Modifier = Modifier) {
     }
 }
 
+//ein gemeinsamer cache statt decode pro tile-slot (spart die dekodiererei beim scrollen)
+private val tileBitmapCache = HashMap<Int, ImageBitmap>()
+
 @Composable
 fun MapTileImage(element: VisualMapElement) {
+    val resources = LocalContext.current.resources
     Image(
         modifier = Modifier.width(TILE_SIZE.dp).height(TILE_SIZE.dp),
-        bitmap = ImageBitmap.imageResource(id = element.resId),
+        bitmap = tileBitmapCache.getOrPut(element.resId) { ImageBitmap.imageResource(resources, element.resId) },
         contentDescription = null,
         filterQuality = FilterQuality.None
     )
@@ -300,7 +352,11 @@ fun MapTileImage(element: VisualMapElement) {
 @Composable
 fun MainScreenPreview() {
     RoguelikeTheme {
-        MainScreen()
+        MainScreen(
+            model = viewModel(factory = RoguelikeViewModelFactory(
+                Room.inMemoryDatabaseBuilder(LocalContext.current, AppDatabase::class.java).build().gameDao()
+            ))
+        )
     }
 }
 
