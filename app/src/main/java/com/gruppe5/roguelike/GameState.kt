@@ -4,11 +4,12 @@ import androidx.room.ColumnInfo
 import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.gruppe5.roguelike.inventory.EquipSlot
 import com.gruppe5.roguelike.inventory.ItemInstance
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Player
-import com.gruppe5.roguelike.property.ActiveBuff
+import com.gruppe5.roguelike.property.Effect
 import com.gruppe5.roguelike.property.StatModifier
 
 data class GameState(
@@ -16,13 +17,15 @@ data class GameState(
     val player: Player,
     val enemies: List<Enemy>,
     val inventory: List<ItemInstance>,
-    val activeBuffs: List<ActiveBuff>,
+    val trinkets: List<ItemInstance>,
+    val equipment: Map<EquipSlot, ItemInstance>,
+    val effects: List<Effect>,
     val turn: Int,
     val isGameOver: Boolean,
 ) {
 
     //"Entity" heißt in dem Sinne nicht Enemy oder Player sondern `@Entity` annotation <- es is der GameState
-    fun toEntity(enemiesJson: String, inventoryJson: String): GameEntity = GameEntity(
+    fun toEntity(enemiesJson: String, inventoryJson: String, trinketsJson: String, equipmentJson: String, effectsJson: String): GameEntity = GameEntity(
         turn = turn,
         isGameOver = isGameOver,
         playerStats = player.stats,
@@ -30,6 +33,9 @@ data class GameState(
         playerY = player.position.y,
         enemiesJson = enemiesJson,
         inventoryJson = inventoryJson,
+        trinketsJson = trinketsJson,
+        equipmentJson = equipmentJson,
+        effectsJson = effectsJson,
     )
 }
 
@@ -42,6 +48,9 @@ data class GameEntity(
     @ColumnInfo(name = "player_y") val playerY: Int,
     @ColumnInfo(name = "enemies_json") val enemiesJson: String,
     @ColumnInfo(name = "inventory_json") val inventoryJson: String,
+    @ColumnInfo(name = "trinkets_json") val trinketsJson: String,
+    @ColumnInfo(name = "equipment_json") val equipmentJson: String,
+    @ColumnInfo(name = "effects_json") val effectsJson: String,
 ) {
     @PrimaryKey
     var id: Int = 0 //Es gibt nur eines. Außer wir wollen save-state slots oder so später

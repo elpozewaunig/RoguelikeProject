@@ -5,12 +5,13 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.gruppe5.roguelike.inventory.EquipSlot
 import com.gruppe5.roguelike.inventory.ItemInstance
 import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.MapTileEntity
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Player
-import com.gruppe5.roguelike.property.BuffEntity
+import com.gruppe5.roguelike.property.Effect
 import com.gruppe5.roguelike.property.Position
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,16 +25,15 @@ import kotlinx.serialization.json.Json
 class GameRepository(private val gameDao: GameDao) {
 
     suspend fun save(state: GameState) = withContext(Dispatchers.IO) {
-        val enemiesJson = Json.encodeToString<List<Enemy>>(state.enemies)
-        val inventoryJson = Json.encodeToString<List<ItemInstance>>(state.inventory)
         gameDao.replaceSave(
-            game = state.toEntity(enemiesJson, inventoryJson),
+            game = state.toEntity(
+                enemiesJson = Json.encodeToString<List<Enemy>>(state.enemies),
+                inventoryJson = Json.encodeToString<List<ItemInstance>>(state.inventory),
+                trinketsJson = Json.encodeToString<List<ItemInstance>>(state.trinkets),
+                equipmentJson = Json.encodeToString<Map<EquipSlot, ItemInstance>>(state.equipment),
+                effectsJson = Json.encodeToString<List<Effect>>(state.effects),
+            ),
             tiles = state.map.flatten().map { it.toEntity() },
-            buffs = state.activeBuffs.mapIndexed { slot, buff ->
-                //buff -> item link über den inventar-slot (buffs bleiben in Room)
-                val itemSlot = state.inventory.indexOfFirst { it === buff.sourceItem }.takeIf { it >= 0 }
-                buff.toEntity(slot, itemSlot)
-            },
         )
     }
 
@@ -46,7 +46,6 @@ class GameRepository(private val gameDao: GameDao) {
         enemies.forEach { it.onDeserialized(enemies) } //jeder gegner verlinkt sich selber (siehe Enemy.onDeserialized)
 
         val inventory = Json.decodeFromString<List<ItemInstance>>(game.inventoryJson)
-        val buffs = gameDao.getBuffs().sortedBy { it.slot }.map { it.toBuff(inventory) }
 
         val player = Player(game.playerStats, Position(game.playerX, game.playerY))
         player.inventory = inventory
@@ -56,7 +55,9 @@ class GameRepository(private val gameDao: GameDao) {
             player = player,
             enemies = enemies,
             inventory = inventory,
-            activeBuffs = buffs,
+            trinkets = Json.decodeFromString<List<ItemInstance>>(game.trinketsJson),
+            equipment = Json.decodeFromString<Map<EquipSlot, ItemInstance>>(game.equipmentJson),
+            effects = Json.decodeFromString<List<Effect>>(game.effectsJson),
             turn = game.turn,
             isGameOver = game.isGameOver,
         )
@@ -94,30 +95,18 @@ interface GameDao {
     @Query("DELETE FROM map_tiles")
     suspend fun clearTiles()
 
-    @Query("SELECT * FROM buffs")
-    suspend fun getBuffs(): List<BuffEntity>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertBuffs(buffs: List<BuffEntity>)
-
-    @Query("DELETE FROM buffs")
-    suspend fun clearBuffs()
-
     @Transaction
     suspend fun replaceSave(
         game: GameEntity,
         tiles: List<MapTileEntity>,
-        buffs: List<BuffEntity>,
     ) {
         clearSave()
         insertGame(game)
         insertTiles(tiles)
-        insertBuffs(buffs)
     }
 
     @Transaction
     suspend fun clearSave() {
-        clearBuffs()
         clearTiles()
         clearGame()
     }

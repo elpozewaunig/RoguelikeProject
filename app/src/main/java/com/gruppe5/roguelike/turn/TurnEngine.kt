@@ -1,15 +1,24 @@
 package com.gruppe5.roguelike.turn
 
 import com.gruppe5.roguelike.GameConfig
+import com.gruppe5.roguelike.inventory.EquipSlot
 import com.gruppe5.roguelike.inventory.ItemInstance
+import com.gruppe5.roguelike.inventory.item_types.Consumable
+import com.gruppe5.roguelike.inventory.item_types.Equipment
+import com.gruppe5.roguelike.inventory.item_types.TrinketItem
 import com.gruppe5.roguelike.map_element.entity.Enemy
 import com.gruppe5.roguelike.map_element.entity.Entity
 import com.gruppe5.roguelike.map_element.entity.Player
-import com.gruppe5.roguelike.property.ActiveBuff
+import com.gruppe5.roguelike.property.Effect
+import com.gruppe5.roguelike.property.StatModifier
 
 /**
  * !! Achtung nit wundern
  * Is lei cosmetic refactor damit des ViewModel nit so fett is
+ *
+ * Stats sind base + modifications (+=/-=)
+ * Consumables geben Effects, ggf ticken pro runde runter
+ * Equipment onequip += und unequip -=
  */
 object TurnEngine {
 
@@ -18,7 +27,7 @@ object TurnEngine {
         ctx: TurnContext,
         player: Player,
         enemies: MutableList<Enemy>,
-        activeBuffs: MutableList<ActiveBuff>,
+        effects: MutableList<Effect>,
     ): Boolean {
         var gameOver = false
 
@@ -62,87 +71,99 @@ object TurnEngine {
         takeTurn(player)
         enemies.toList().forEach { takeTurn(it) }
 
-        handleExpiredBuffs(player, activeBuffs)
+        tickEffects(player, effects)
 
         player.queued = listOf(Action.Wait)
         return gameOver
     }
 
+    //tap auf inventar-slot: consumable verbrauchen oder equipment in seinen slot legen
     fun useItem(
         index: Int,
         inventory: MutableList<ItemInstance>,
+        equipment: MutableMap<EquipSlot, ItemInstance>,
         player: Player,
-        activeBuffs: MutableList<ActiveBuff>,
+        effects: MutableList<Effect>,
     ) {
-        val currentItem = inventory.getOrNull(index) ?: return
+        val item = inventory.getOrNull(index) ?: return
 
-        val buffs = currentItem.use(player)
-        buffs.forEach { applyBuff(it, player, activeBuffs) }
-
-        //-1 triggered recomposition
-        if (currentItem.usages - 1 <= 0) {
-            //perma item use = entfernen
-            if (currentItem.isPermanent) {
-                removePermaBuffsForInstance(currentItem, player, activeBuffs)
-                //TODO hier könnte drop logik hinzugefügt werden falls ma noch zeit ham
+        when (val def = item.definition) {
+            is Consumable -> {
+                def.onUse(player).forEach { applyEffect(it, player, effects) }
+                if (item.usages - 1 <= 0) {
+                    inventory.removeAt(index)
+                } else {
+                    inventory[index] = ItemInstance(def, item.usages - 1)
+                }
             }
-            inventory.removeAt(index)
-        } else {
-            inventory[index] = ItemInstance(currentItem.definition, currentItem.usages - 1)
+            is Equipment -> equip(index, item, def, inventory, equipment, player)
+            else -> Unit //trinkets landen gar nicht im inventar (eigene reihe)
         }
     }
 
+    //tap auf equip-slot: ablegen
+    fun unequip(
+        slot: EquipSlot,
+        equipment: MutableMap<EquipSlot, ItemInstance>,
+        player: Player,
+    ) {
+        val item = equipment.remove(slot) ?: return
+        removeStats(player, (item.definition as Equipment).statsMod)
+        //TODO drop item am boden
+    }
+
+    //tap auf trinket-slot: ablegen
+    fun dropTrinket(index: Int, trinkets: MutableList<ItemInstance>) {
+        if (index !in trinkets.indices) return
+        trinkets.removeAt(index)
+        //TODO drop item am boden
+    }
+
+    //routet nach typ: trinkets in die eigene reihe, der rest ins inventar
     fun addPlayerInventory(
         items: List<ItemInstance>,
         inventory: MutableList<ItemInstance>,
-        player: Player,
-        activeBuffs: MutableList<ActiveBuff>,
+        trinkets: MutableList<ItemInstance>,
     ) {
-        inventory.addAll(items.take(GameConfig.INVENTORY_SLOTS))
-        inventory.forEach { processPermaBuffs(it, player, activeBuffs) }
+        val (trinketItems, rest) = items.partition { it.definition is TrinketItem }
+        inventory.addAll(rest.take(GameConfig.INVENTORY_SLOTS - inventory.size))
+        trinkets.addAll(trinketItems.take(GameConfig.TRINKET_SLOTS - trinkets.size))
     }
 
-    private fun handleExpiredBuffs(player: Player, activeBuffs: MutableList<ActiveBuff>) {
-        val expired = mutableListOf<ActiveBuff>()
-        activeBuffs.forEach { buff ->
-            if (buff.remainingTurns > 0) {
-                buff.remainingTurns -= 1
-                if (buff.remainingTurns <= 0) expired.add(buff)
-            }
+    //swap slot ; TODO wollen wir lieber only-hold-one haben?
+    private fun equip(
+        index: Int,
+        item: ItemInstance,
+        def: Equipment,
+        inventory: MutableList<ItemInstance>,
+        equipment: MutableMap<EquipSlot, ItemInstance>,
+        player: Player,
+    ) {
+        val old = equipment.put(def.slot, item)
+        if (old != null) removeStats(player, (old.definition as Equipment).statsMod)
+        player.stats += def.statsMod
+
+        if (old != null) inventory[index] = old else inventory.removeAt(index)
+    }
+
+    private fun tickEffects(player: Player, effects: MutableList<Effect>) {
+        val expired = effects.filter { --it.remaining <= 0 }
+        expired.forEach { effect ->
+            removeStats(player, effect.statsMod)
+            effects.remove(effect)
         }
-        expired.forEach { removeBuff(it, player, activeBuffs) }
     }
 
-    private fun applyBuff(buff: ActiveBuff, player: Player, activeBuffs: MutableList<ActiveBuff>) {
-        activeBuffs.add(buff)
-        player.stats += buff.statsMod
+    private fun applyEffect(effect: Effect, player: Player, effects: MutableList<Effect>) {
+        effects.add(effect)
+        player.stats += effect.statsMod
     }
 
-    private fun removeBuff(buff: ActiveBuff, player: Player, activeBuffs: MutableList<ActiveBuff>) {
-        player.stats -= buff.statsMod
-
-        // falls overhealing möglich sein soll, hier entfernen
+    private fun removeStats(player: Player, statsMod: StatModifier) {
+        player.stats -= statsMod
+        // TODO overhealing möglich? dann des entfernen
         if (player.stats.health > player.stats.maxHealth) {
             player.stats.health = player.stats.maxHealth
         }
-
-        activeBuffs.remove(buff)
-    }
-
-    //erlaubt für später mehrere buffs pro item
-    private fun processPermaBuffs(instance: ItemInstance, player: Player, activeBuffs: MutableList<ActiveBuff>) {
-        if (!instance.isPermanent) return
-
-        //perma buff: remainingTurns = -1, referenz aufs item statt string-id + timestamp
-        val buffs = instance.definition.onUse(instance, player)
-        buffs.forEach { base ->
-            val perm = ActiveBuff(statsMod = base.statsMod, remainingTurns = -1, sourceItem = instance)
-            applyBuff(perm, player, activeBuffs)
-        }
-    }
-
-    private fun removePermaBuffsForInstance(instance: ItemInstance, player: Player, activeBuffs: MutableList<ActiveBuff>) {
-        val toRemove = activeBuffs.filter { it.sourceItem === instance }
-        toRemove.forEach { removeBuff(it, player, activeBuffs) }
     }
 }

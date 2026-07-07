@@ -59,7 +59,6 @@ import com.gruppe5.roguelike.map_element.MapTile
 import com.gruppe5.roguelike.map_element.MapTileEntity
 import com.gruppe5.roguelike.map_element.VisualMapElement
 import com.gruppe5.roguelike.map_element.entity.Entity
-import com.gruppe5.roguelike.property.BuffEntity
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.ui.theme.RoguelikeTheme
 import kotlin.math.abs
@@ -68,8 +67,8 @@ const val DEBUG_MODE = false
 const val TILE_SIZE = 50
 
 @Database(
-    entities = [GameEntity::class, MapTileEntity::class, BuffEntity::class],
-    version = 1,
+    entities = [GameEntity::class, MapTileEntity::class],
+    version = 3, //v2: buffs-tabelle raus, equipment/effects als json-blobs. v3: trinkets_json dazu
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -82,7 +81,8 @@ class MainActivity : ComponentActivity() {
             applicationContext,
             AppDatabase::class.java,
             "roguelike_database"
-        ).build()
+        ).fallbackToDestructiveMigration(true) //alte saves einfach wegwerfen statt migrations schreiben
+            .build()
     }
 
     private val model: RoguelikeViewModel by viewModels {
@@ -249,7 +249,11 @@ fun MainScreen(modifier: Modifier = Modifier, model: RoguelikeViewModel) {
 
         InventoryDisplay(
             inventory = inventory,
+            trinkets = state.trinkets,
+            equipment = state.equipment,
             onItemClick = model::onInventorySlotClicked,
+            onTrinketClick = model::onTrinketSlotClicked,
+            onEquipClick = model::onEquipSlotClicked,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 50.dp)

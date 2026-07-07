@@ -5,10 +5,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.gruppe5.roguelike.level_generators.BasicLevelGenerator
 import com.gruppe5.roguelike.level_generators.LevelGenerator
+import com.gruppe5.roguelike.inventory.EquipSlot
 import com.gruppe5.roguelike.inventory.ItemInstance
 import com.gruppe5.roguelike.inventory.Items
-import com.gruppe5.roguelike.property.ActiveBuff
+import com.gruppe5.roguelike.inventory.item_types.Equipment
 import com.gruppe5.roguelike.map_element.entity.Player
+import com.gruppe5.roguelike.property.Effect
 import com.gruppe5.roguelike.property.Position
 import com.gruppe5.roguelike.property.StatModifier
 import com.gruppe5.roguelike.turn.Action
@@ -36,23 +38,33 @@ class RoguelikeViewModel(gameDao: GameDao) : ViewModel() {
 
     private fun initialState(): GameState {
         val inventory = mutableListOf<ItemInstance>()
-        val activeBuffs = mutableListOf<ActiveBuff>()
+        val trinkets = mutableListOf<ItemInstance>()
         val player = Player(
             StatModifier(maxHealth = 500, health = 500, attack = 5, defense = 2),
             position = mapGenerator.getStartPos()
         )
-        //start-items: die engine mutiert player/inventory/buffs in place (perma-buffs), unverändert
         TurnEngine.addPlayerInventory(
-            listOf(Items.mediumHealthPotion(), Items.opStrengthPotion(), Items.sword()),
-            inventory, player, activeBuffs
+            listOf(Items.mediumHealthPotion(), Items.opStrengthPotion(), Items.sword(), Items.totemOfUndying(), Items.patriotenherz()),
+            inventory, trinkets
         )
         player.inventory = inventory
+
+        //start-ausrüstung: volles eisen, stats werden beim anlegen direkt += verrechnet
+        val equipment = mutableMapOf<EquipSlot, ItemInstance>()
+        listOf(Items.ironHelmet(), Items.ironChestplate(), Items.ironLeggings(), Items.ironBoots()).forEach { item ->
+            val def = item.definition as Equipment
+            equipment[def.slot] = item
+            player.stats += def.statsMod
+        }
+
         return GameState(
             map = mapGenerator.getMap(),
             player = player,
             enemies = mapGenerator.getEnemies(),
             inventory = inventory,
-            activeBuffs = activeBuffs,
+            trinkets = trinkets,
+            equipment = equipment,
+            effects = emptyList(),
             turn = 0,
             isGameOver = false,
         )
@@ -65,7 +77,7 @@ class RoguelikeViewModel(gameDao: GameDao) : ViewModel() {
             if (snapshot.isGameOver) repository.clear() else repository.save(snapshot)
         }
     }
-    
+
     fun loadGame() {
         viewModelScope.launch {
             repository.load()?.let { _uiState.value = it }
@@ -92,11 +104,11 @@ class RoguelikeViewModel(gameDao: GameDao) : ViewModel() {
     private fun runTurn(ctx: TurnContext = buildContext()) {
         val s = state
         val enemies = s.enemies.toMutableList()
-        val activeBuffs = s.activeBuffs.toMutableList()
-        val over = TurnEngine.runTurn(ctx, s.player, enemies, activeBuffs)
+        val effects = s.effects.toMutableList()
+        val over = TurnEngine.runTurn(ctx, s.player, enemies, effects)
         _uiState.value = s.copy(
             enemies = enemies,
-            activeBuffs = activeBuffs,
+            effects = effects,
             turn = s.turn + 1,
             isGameOver = s.isGameOver || over,
         )
@@ -122,17 +134,29 @@ class RoguelikeViewModel(gameDao: GameDao) : ViewModel() {
 
     fun moveUp() = submitPlayerMove(0, -1)
 
-    fun onInventorySlotClicked(index: Int) = mutateInventory { inventory, activeBuffs ->
-        TurnEngine.useItem(index, inventory, state.player, activeBuffs)
+    fun onInventorySlotClicked(index: Int) = mutateItems { inventory, _, equipment, effects ->
+        TurnEngine.useItem(index, inventory, equipment, state.player, effects)
     }
 
-    private inline fun mutateInventory(block: (MutableList<ItemInstance>, MutableList<ActiveBuff>) -> Unit) {
+    fun onEquipSlotClicked(slot: EquipSlot) = mutateItems { _, _, equipment, _ ->
+        TurnEngine.unequip(slot, equipment, state.player)
+    }
+
+    fun onTrinketSlotClicked(index: Int) = mutateItems { _, trinkets, _, _ ->
+        TurnEngine.dropTrinket(index, trinkets)
+    }
+
+    private inline fun mutateItems(
+        block: (MutableList<ItemInstance>, MutableList<ItemInstance>, MutableMap<EquipSlot, ItemInstance>, MutableList<Effect>) -> Unit,
+    ) {
         val s = state
         val inventory = s.inventory.toMutableList()
-        val activeBuffs = s.activeBuffs.toMutableList()
-        block(inventory, activeBuffs)
+        val trinkets = s.trinkets.toMutableList()
+        val equipment = s.equipment.toMutableMap()
+        val effects = s.effects.toMutableList()
+        block(inventory, trinkets, equipment, effects)
         s.player.inventory = inventory
-        _uiState.value = s.copy(inventory = inventory, activeBuffs = activeBuffs)
+        _uiState.value = s.copy(inventory = inventory, trinkets = trinkets, equipment = equipment, effects = effects)
     }
 }
 

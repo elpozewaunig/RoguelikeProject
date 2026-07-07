@@ -19,5 +19,9 @@ class Player(
     var queued: List<Action> = listOf(Action.Wait) //viewmodel interpretiert input zu action (MVVM und so)
     var inventory: List<ItemInstance> = emptyList()
 
+    fun heal(amount: Int) { //max() hier weil srp und so
+        stats.health = (stats.health + amount).coerceAtMost(stats.maxHealth)
+    }
+
     override fun decideAction(ctx: TurnContext): List<Action> = queued
 }
